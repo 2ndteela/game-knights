@@ -2,7 +2,7 @@
   <v-container>
     <v-layout column>
       <div class="link-container" style="padding-top: 8px" >
-        <v-btn color="primary">He Said She Said</v-btn>
+        <v-btn @click="goTo('/he-said-home')" color="primary">He Said She Said</v-btn>
       </div>
       <div class="link-container">
         <v-btn color="primary">Mafia</v-btn>
@@ -14,7 +14,12 @@
 <script>
 
   export default {
-    name: 'Home'
+    name: 'Home',
+    methods: {
+      goTo(link) {
+        this.$router.push(link)
+      }
+    }
   }
 </script>
 
