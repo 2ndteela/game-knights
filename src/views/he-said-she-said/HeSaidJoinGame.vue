@@ -1,21 +1,26 @@
 <script>
 
 import { setInLocal, getFromLocal } from '../../assets/utilities.js'
+import { connect, getSocket } from '../../assets/services.js'
 
 export default {
     name: 'HeSaidJoinGame',
     data() {
         return {
-            gameCode: ''
+            gameCode: '',
+            isJoined: false,
+            playerCount: 0
         }
     },
     methods: {
         joinGame() {
-            setInLocal('gameCode', this.gameCode)
-            setInLocal('currentRound', 0)
-            setInLocal('game', 'He Said She Said')
 
-            this.$router.push('/he-said-lobby')
+            const toSend = {
+                client: getFromLocal('socketId'),
+                lobbyCode: this.gameCode
+            }
+
+            getSocket().emit('join-he-said', toSend)
         },
         checkForActiveLobby() {
             const lobby = getFromLocal('gameCode')
@@ -25,7 +30,29 @@ export default {
         }
     },
     mounted() {
+        connect()
         this.checkForActiveLobby()
+
+        getSocket().on('he-said-joined', resp => {
+            if(resp.status === 200) {
+                setInLocal('gameCode', this.gameCode)
+                setInLocal('currentRound', 0)
+                setInLocal('game', 'He Said She Said')
+            }
+            else console.error(resp)
+        })
+
+        getSocket().on('updated-player-count', resp => {
+            if(resp.status === 200) {
+                this.playerCount = resp.data
+            }
+        })
+
+        getSocket().on('he-said-started', resp => {
+            if(resp.status === 200) {
+                this.$router.push('/he-said-lobby')
+            }
+        })
     }
 }
 </script>

@@ -15,6 +15,8 @@
 </template>
 
 <script>
+import {connect} from './assets/services'
+
 export default {
   name: 'App',
 
