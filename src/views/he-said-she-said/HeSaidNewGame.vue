@@ -1,5 +1,5 @@
 <script>
-import { generateCode, setInLocal } from '../../assets/utilities.js'
+import { generateCode, setInLocal, getFromLocal } from '../../assets/utilities.js'
 import { connect, getSocket } from '../../assets/services.js'
 
 export default {
@@ -16,20 +16,42 @@ export default {
         }
     },
     mounted() {
-        const code = generateCode()
+        let code = getFromLocal('gameCode')
+        if (!code) code = generateCode()
+
         this.lobbyCode = code
 
         connect()
 
         getSocket().emit('new-he-said', code)
 
+        getSocket().on('game-currently-open', resp => {
+
+            setInLocal('game', 'He Said She Said')
+            setInLocal('gameCode', code)
+            this.playerCount = 1
+            
+            if(resp.data.GameStatusId === 2) {
+                console.log('should push to lobby')
+                setInLocal('currentRound', resp.data.CurrentRound)
+                this.$router.push('/he-said-lobby')
+            }
+
+            else if (resp.data.GameStatusId === 3) {
+                console.log('should push to results')
+                this.$router.push('/he-said-results')
+            }
+
+        })
+
         getSocket().on('game-created', data => {
-            console.log('got back:')
+            console.log('game created')
             console.log(data)
 
             setInLocal('isHost', true)
             setInLocal('game', 'He Said She Said')
             setInLocal('gameCode', code)
+            this.playerCount = 1
         })
 
         getSocket().on('he-said-started', data => {

@@ -9,7 +9,8 @@ export default {
         return {
             gameCode: '',
             isJoined: false,
-            playerCount: 0
+            playerCount: 0,
+            playerName: ''
         }
     },
     methods: {
@@ -24,9 +25,7 @@ export default {
         },
         checkForActiveLobby() {
             const lobby = getFromLocal('gameCode')
-
-            // if(!!lobby)
-            //     this.$router.push('/he-said-lobby')
+            getSocket().emit('check-open-lobby', lobby)
         }
     },
     mounted() {
@@ -53,6 +52,20 @@ export default {
                 this.$router.push('/he-said-lobby')
             }
         })
+
+        getSocket().on('he-said-checked', resp => {
+            if(resp.status === 200) {
+
+                if(resp.data.GameStatusId === 2) {
+                    setInLocal('currentRound', resp.data.CurrentRound)
+                    this.$router.push('/he-said-lobby')
+                }
+
+                else if (resp.data.GameStatusId === 3) {
+                    this.$router.push('/he-said-results')
+                }
+            }
+        })
     }
 }
 </script>
@@ -61,6 +74,15 @@ export default {
     <v-layout fill-height style="padding: 16px" justify-center align-center column >
         <v-flex style="width: 100%">
             <v-layout column justify-end fill-height>
+                <div style="padding-bottom: 16px">
+                    <v-text-field
+                        outlined
+                        label="What's your name?"
+                        v-model="playerName"
+                        hide-details
+                        color="accent"
+                    ></v-text-field>
+                </div>
                 <div>
                     <v-text-field 
                         outlined
@@ -72,7 +94,7 @@ export default {
                 </div>
             </v-layout>
         </v-flex>
-        <v-flex style="padding-top: 8px; width: 100%">
+        <v-flex style="padding-top: 16px; width: 100%">
             <v-layout justify-end align-end>
                 <v-btn @click="joinGame" color="primary">Join</v-btn>
             </v-layout>
