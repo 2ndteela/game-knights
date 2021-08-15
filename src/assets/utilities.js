@@ -22,6 +22,10 @@ export const setInLocal = (attribute, value) => {
     localStorage['state'] = JSON.stringify(state)
 }
 
+export const clearLocal = () => {
+    localStorage['state'] = '{}'
+}
+
 export const generateCode = () => {
     const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     let code = ''

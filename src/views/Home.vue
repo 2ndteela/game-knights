@@ -5,7 +5,7 @@
         <v-btn @click="goTo('/he-said-home')" color="primary">He Said She Said</v-btn>
       </div>
       <div class="link-container">
-        <v-btn color="primary">Mafia</v-btn>
+        <v-btn color="primary">The Answer Is</v-btn>
       </div>
     </v-layout>
   </v-container>

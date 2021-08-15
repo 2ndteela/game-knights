@@ -1,5 +1,10 @@
 <script>
+import { dbListen, dbReadOnce, dbUpdate, dbWrite } from '../../assets/services'
+import { clearLocal, getFromLocal, setInLocal } from '../../assets/utilities'
+import MessageDialog from '../../components/MessageDialog.vue'
+
 export default {
+  components: { MessageDialog },
     name: 'HeSaidLobby',
     data() {
         return {
@@ -17,7 +22,15 @@ export default {
             ],
             started: true,
             qIdx: 0,
-            userResponse: ''
+            userResponse: '',
+            showMessage: false,
+            messageBody: '',
+            messageHeader: '',
+            submissions: 0,
+            gameSyncd: false,
+            submitted: false,
+            currentRound: 0,
+            firstPass: true
         }
     },
     computed: {
@@ -25,13 +38,156 @@ export default {
             return this.questions[this.qIdx]
         }
     }, 
-    methods: {
-        submit() {
-            if(this.qIdx < this.questions.length - 1)
-                this.qIdx++
-            
-            else this.$router.push('/he-said-results')
+
+    watch: {
+        slowReminder(newVal, Oldval) {
+            console.log('slow')
+            if(newVal) {
+                const arr = [
+                    'Bruh',
+                    'Nana types faster',
+                    'Daylight',
+                    'No, please take your time'
+                ]
+
+                const rand = Math.floor(Math.random() * arr.length)
+                this.reminders[this.reminderIdx] = arr[rand]
+                this.reminderIdx++
+
+                console.log(this.reminders)
+
+                setTimeout(() => {
+                    this.reminders[this.reminderDeleteIdx] = ''
+                    this.reminderDeleteIdx++
+                }, 2000)
+
+                this.slowReminder = false
+            }
         }
+    }, 
+
+    methods: {
+        async submit() {
+            const check = await this.postResponse()
+            if(check) {
+                if(this.qIdx < this.questions.length - 1) {
+                    this.userResponse = ''
+                    this.submitted = true
+                }
+                
+                else {
+                    if(getFromLocal('playerId') == 0)
+                        dbUpdate(`games/${getFromLocal('gameCode')}`, { state: 'finished' })
+
+                    this.$router.push('/he-said-results')
+                }
+            }
+            else {
+                this.showMessage = true
+                this.messageBody = 'There was an error submitting your response. You game might be over or out of sync'
+                this.messageHeader = 'Error'
+            }
+        },
+        async postResponse() {
+            try {
+                const story = getFromLocal('gameCode')
+                const playerId = getFromLocal('playerId')
+                await dbWrite(`stories/${story}/${playerId}/${this.qIdx}`, this.userResponse)
+                return true
+            }
+            catch(err) {
+                console.error(err)
+                return false
+            }
+        },
+        async syncGame() {
+            const gameCode = getFromLocal('gameCode')
+            const round = getFromLocal('currentRound')
+            const playerId = getFromLocal('playerId')
+
+            const check = await dbReadOnce(`games/${gameCode}`)
+
+            if(!gameCode || round === null || round === undefined || playerId === null || playerId === undefined || !check) { 
+                this.showMessage = true
+                this.messageBody = 'Looks like your game ended, try going back to the home screen and joining another one.'
+                this.messageHeader = 'Game Over'
+            }
+
+            if(playerId === 0) {
+
+                if(!this.gameSyncd) {
+                    const data = await dbReadOnce(`games/${gameCode}`)
+                    this.submissions = data.submissions
+                    this.qIdx = data.currentRound
+                    this.gameSyncd = true
+                }
+
+                dbListen(`stories/${gameCode}`, async snap => {
+                    const data = snap.val()
+                    const players = getFromLocal('playerCount')
+                    const round = getFromLocal('currentRound')
+                    
+                    
+                    if(data && !this.firstPass)
+                        this.submissions++
+
+                    else {
+                        this.firstPass = false
+                        
+                        const subCheck = data[0][round]
+                        if(subCheck)
+                            this.submitted = true
+                    }
+
+                    if(this.submissions === players) {
+                        await dbUpdate(`games/${gameCode}`, { currentRound: round + 1, submissions: 0 })
+                        this.qIdx++
+                        this.submitted = false
+                        this.submissions = 0
+                    }
+                    else
+                        await dbUpdate(`games/${gameCode}`, { submissions: this.submissions })
+                })
+            }
+            else {
+                dbListen(`games/${gameCode}`, async snap => {
+                    const data = snap.val()
+
+                    if(data.submissions === 0 && this.gameSyncd) {
+                        this.submitted = false
+                        this.qIdx++
+                    }
+                    
+                    else if (!this.gameSyncd) {
+                        this.gameSyncd = true
+                        this.qIdx = data.currentRound
+
+                        const story = await dbReadOnce(`stories/${gameCode}/${getFromLocal('playerId')}/${this.qIdx}`)
+                        console.log(playerId, this.qIdx, story)
+                        if(story)
+                            this.submitted = true
+
+                        console.log('game synced')
+                    }
+                })
+
+                // dbListen(`games/${gameCode}/remind`, snap => {
+                //     if(snap.val()) {
+                //         console.log('snap', snap.val())
+                //         this.slowReminder = true
+                //         dbWrite(`games/${gameCode}/remind`, false)
+                //     }
+                // })
+            }
+
+        },
+        goBack() {
+            clearLocal()
+            this.$router.push('he-said-home')
+        }
+    },
+    mounted() {
+        this.syncGame()
     }
 }
 </script>
@@ -41,9 +197,8 @@ export default {
         <v-btn icon style="position: fixed; top: 68px; right: 12px" >
             <v-icon>mdi-information-outline</v-icon>
         </v-btn>
-        <v-layout v-if="!started" justify-center align-center column>
-            <h2 class="accent--text"     style="text-align: center; padding-bottom: 32px">Hold up, your friends are still joining...</h2>
-            <div>If you have questions, hit the icon in the top right to learn about He Said She Said</div>
+        <v-layout v-if="submitted" justify-center align-center fill-height column style="width: 100%">
+            <div>Waiting on your friends to submit...</div>
         </v-layout>
         <v-layout v-else justify-center align-center fill-height column style="width: 100%">
             <div style="width: 100%">
@@ -66,7 +221,13 @@ export default {
                 <v-btn color="primary" style="margin-top: 8px; width: 100%" @click="submit">Submit</v-btn>
             </div>
         </v-layout>
-
+        <message-dialog
+            v-model="showMessage"
+            :body="messageBody"
+            :header="messageHeader"
+            :callback="goBack"
+        >
+        </message-dialog>
     </v-layout>
 </template>
 

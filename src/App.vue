@@ -15,7 +15,6 @@
 </template>
 
 <script>
-import {connect} from './assets/services'
 
 export default {
   name: 'App',
@@ -35,7 +34,7 @@ export default {
   .v-application {
     font-family: 'Montserrat' !important;
   }
-  .v-application > h1, .v-application > h2, .v-application > h3, .v-application > h4, .v-application > h5, .v-application > h6, .v-toolbar {
+  .v-application h1, .v-application h2, .v-application h3, .v-application h4, .v-application h5, .v-application h6, .v-toolbar {
     font-family: 'Mukta' !important;
     color: rgba(255, 255, 255, .87);
   }

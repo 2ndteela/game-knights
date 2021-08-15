@@ -1,4 +1,6 @@
 <script>
+import { dbReadOnce } from '../../assets/services'
+import { getFromLocal } from '../../assets/utilities'
 import ResultsHider from '../../components/ResultsHider.vue'
 
 export default {
@@ -6,6 +8,7 @@ export default {
     components: {ResultsHider},
     data() {    
         return {
+            allStories: [],
             results: [
                 'Geoff',
                 'Laney',
@@ -26,7 +29,8 @@ export default {
                 'Shut your pie and listen up,'
             ],
             blurArray: [0,0,0,0,0,0,0,0],
-            lastShown: 0
+            lastShown: 0,
+            startIdx: 0
         }
     },
     computed: {
@@ -38,7 +42,28 @@ export default {
         showNext() {
             this.blurArray[this.lastShown] = 1
             this.lastShown++
+        },
+        async getStories() {
+            const allStories = await dbReadOnce(`stories/${getFromLocal('gameCode')}`)
+            console.log(allStories)
+            this.startIdx = getFromLocal('playerId')
+            this.allStories = allStories
+            this.buildStory()
+        },
+        buildStory () {
+            const numStories = this.allStories.length
+            let x = this.startIdx
+            let y = 0
+            const arr = []
+
+            for(y = 0; y < 10; y++)
+                arr.push(this.allStories[ (x % numStories) ][y])
+            
+            this.results = arr
         }
+    },
+    mounted() {
+        this.getStories()
     }
 }
 </script>
