@@ -1,12 +1,10 @@
 <script>
-
-import { setInLocal, getFromLocal, clearLocal } from '../../assets/utilities.js'
-import { dbUpdate, dbReadOnce, dbListen, dbRemoveListener } from '../../assets/services.js'
 import MessageDialog from '../../components/MessageDialog.vue'
 import InfoButton from '../../components/InfoButton.vue'
+import { setInLocal, getFromLocal, clearLocal } from '../../assets/utilities'
 
 export default {
-    name: 'HeSaidJoinGame',
+    name: 'AnswerJoin',
     components: { MessageDialog, InfoButton },
     data() {
         return {
@@ -44,7 +42,7 @@ export default {
                    if(data.state === 'started') {
                         setInLocal('currentRound', 0)
                         dbRemoveListener(`games/${this.gameCode}`)
-                        this.$router.push('/he-said-lobby')
+                        this.$router.push('/answer-response')
                    }
                })
            }
@@ -60,7 +58,7 @@ export default {
                     this.$router.push('he-said-lobby')
 
                 else if (check.state === 'finished') {
-                    this.$router.push('he-said-results/')
+                    this.$router.push('answer-leader-board')
                 }
 
                 else {
@@ -74,7 +72,7 @@ export default {
                         if(data.state === 'started') {
                             setInLocal('currentRound', 0)
                             dbRemoveListener(`games/${this.gameCode}`)
-                            this.$router.push('/he-said-lobby')
+                            this.$router.push('/answer-response')
                         }
                     })
                 }

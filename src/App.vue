@@ -6,6 +6,10 @@
       dark
     >
       <v-app-bar-title>Game Knights</v-app-bar-title>
+      <v-spacer></v-spacer>
+      <v-btn icon @click="goHome">
+        <v-icon>mdi-home</v-icon>
+      </v-btn>
     </v-app-bar>
 
     <v-main>
@@ -15,6 +19,8 @@
 </template>
 
 <script>
+import { clearLocal, getFromLocal } from './assets/utilities.js';
+import { dbWrite } from './assets/services.js';
 
 export default {
   name: 'App',
@@ -22,6 +28,15 @@ export default {
   data: () => ({
     //
   }),
+  methods: {
+    goHome() {
+      dbWrite(`games/${getFromLocal('gameCode')}`, null)
+      dbWrite(`stories/${getFromLocal('gameCode')}`, null)
+
+      clearLocal()
+      this.$router.push('/')
+    }
+  }
 };
 </script>
 

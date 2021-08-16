@@ -1,5 +1,5 @@
 <script>
-import { dbReadOnce } from '../../assets/services'
+import { dbReadOnce, dbUpdate, dbWrite } from '../../assets/services'
 import { getFromLocal } from '../../assets/utilities'
 import ResultsHider from '../../components/ResultsHider.vue'
 
@@ -45,6 +45,10 @@ export default {
         },
         async getStories() {
             const allStories = await dbReadOnce(`stories/${getFromLocal('gameCode')}`)
+
+            if(!allStories)
+                this.$router.push('/he-said-home')
+
             console.log(allStories)
             this.startIdx = getFromLocal('playerId')
             this.allStories = allStories
@@ -56,10 +60,27 @@ export default {
             let y = 0
             const arr = []
 
-            for(y = 0; y < 10; y++)
+            for(y = 0; y < 10; y++) {
                 arr.push(this.allStories[ (x % numStories) ][y])
+                x++
+            }
             
             this.results = arr
+        },
+        nextStory(num) {
+            if(num === 0)
+                this.startIdx = getFromLocal('playerId')
+
+            else if (num === -1 && this.startIdx === 0) {
+                this.startIdx = this.allStories.length - 1
+            }
+
+            else
+                this.startIdx += num
+
+            this.blurArray = [0,0,0,0,0,0,0,0]
+            this.lastShown = 0
+            this.buildStory()
         }
     },
     mounted() {
@@ -116,7 +137,22 @@ export default {
         </results-hider>
         <div class="line-break"></div>
 
+        <v-layout style="width: 100%">
+            <v-flex style="padding-right: 8px">
+                <v-btn width="100%" @click="nextStory(-1)">
+                    <v-icon>mdi-chevron-left</v-icon>
+                </v-btn>
+            </v-flex>
+            <v-flex style="padding-right: 8px">
+                <v-btn width="100%" @click="nextStory(0)">My Story</v-btn>
+            </v-flex>
+            <v-flex>
+                <v-btn width="100%" @click="nextStory(1)"><v-icon>mdi-chevron-right</v-icon></v-btn>
+            </v-flex>
+        </v-layout>
+
         <v-btn v-if="lastShown < this.blurArray.length"  @click="showNext()" style="position: fixed; bottom: 24px; width: 92%"  >Go On...</v-btn>
+
     </v-layout>
 </template>
 

@@ -36,6 +36,9 @@ export default {
     computed: {
         currentQuestion() {
             return this.questions[this.qIdx]
+        },
+        playerId() {
+            return getFromLocal('playerId')
         }
     }, 
 
@@ -134,13 +137,13 @@ export default {
                     else {
                         this.firstPass = false
                         
-                        const subCheck = data[0][round]
+                        const subCheck = data[0][this.qIdx]
                         if(subCheck)
                             this.submitted = true
                     }
 
                     if(this.submissions === players) {
-                        await dbUpdate(`games/${gameCode}`, { currentRound: round + 1, submissions: 0 })
+                        await dbUpdate(`games/${gameCode}`, { currentRound: this.qIdx + 1, submissions: 0 })
                         this.qIdx++
                         this.submitted = false
                         this.submissions = 0
@@ -163,11 +166,8 @@ export default {
                         this.qIdx = data.currentRound
 
                         const story = await dbReadOnce(`stories/${gameCode}/${getFromLocal('playerId')}/${this.qIdx}`)
-                        console.log(playerId, this.qIdx, story)
                         if(story)
                             this.submitted = true
-
-                        console.log('game synced')
                     }
                 })
 
@@ -194,9 +194,6 @@ export default {
 
 <template>
     <v-layout fill-height style="padding: 16px">
-        <v-btn icon style="position: fixed; top: 68px; right: 12px" >
-            <v-icon>mdi-information-outline</v-icon>
-        </v-btn>
         <v-layout v-if="submitted" justify-center align-center fill-height column style="width: 100%">
             <div>Waiting on your friends to submit...</div>
         </v-layout>
@@ -217,8 +214,9 @@ export default {
                 v-model="userResponse"
                 hide-details
                 ></v-text-field>
-
+                
                 <v-btn color="primary" style="margin-top: 8px; width: 100%" @click="submit">Submit</v-btn>
+                <div style="padding-top: 16px; text-align: center" v-if="currentQuestion.helpText" >{{currentQuestion.helpText}}</div>
             </div>
         </v-layout>
         <message-dialog
