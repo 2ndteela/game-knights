@@ -1,5 +1,4 @@
 <script>
-import { setInLocal } from '../../assets/utilities.js'
 
 export default {
     name: 'HeSaidSheSaidHome',
