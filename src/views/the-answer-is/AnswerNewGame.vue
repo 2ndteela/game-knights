@@ -2,14 +2,20 @@
 <script>
 import { generateCode, setInLocal, getFromLocal, clearLocal } from '../../assets/utilities.js'
 import { dbRemoveListener, dbListen, dbReadOnce, dbUpdate, dbWrite } from '../../assets/services.js'
+import messageDialog from '../../components/MessageDialog.vue'
 
 export default {
     name: 'AnswerNewGame',
+    components: { messageDialog },
     data() {
         return {
             lobbyCode: '',
             playerCount: 0,
-            pointsToWin: 5
+            pointsToWin: 5,
+            screenName: '',
+            showMessage: false,
+            messageBody: '',
+            messageHeader: ''
         }
     },
     methods: {
@@ -30,28 +36,33 @@ export default {
                 const data = snap.val()
                 this.playerCount = data.playerCount
             })
-
-            setInLocal('playerId', 0)
         },
         async startGame() {
             try {
-                const toSend = {
-                    state: 'started',
-                    submissions: 0
+
+                const nameCheck = await dbReadOnce(`/players/${this.lobbyCode}/${this.screenName}`)
+                if(!!nameCheck) {
+                    this.messageBody = 'Someone already has that name in this lobby. You\'re gonna need a new one.'
+                    this.messageHeader = 'Same name... Awkward...'
+                    this.showMessage = true
                 }
-                await dbUpdate(`/games/${this.lobbyCode}`, toSend )
+                else {
+                    const toSend = {
+                        state: 'started',
+                        submissions: 0,
+                        pointsToWin: this.pointsToWin
+                    }
+                    await dbUpdate(`/games/${this.lobbyCode}`, toSend )
+                    await dbUpdate(`/players/${this.lobbyCode}/${this.screenName}`, {score: 0} )
 
-                const stories = {}
+                    dbRemoveListener(`games/${this.gameCode}`)
 
-                for(let i = 0; i < this.playerCount; i++) stories[i] = {}
+                    setInLocal('gameCode', this.lobbyCode)
+                    setInLocal('playerCount', this.playerCount)
+                    setInLocal('playerId', this.screenName)
 
-                await dbWrite(`responses/${this.lobbyCode}`, stories)
-                dbRemoveListener(`games/${this.gameCode}`)
-
-                setInLocal('gameCode', this.lobbyCode)
-                setInLocal('playerCount', this.playerCount)
-
-                this.$router.push('/answer-question')
+                    this.$router.push('/answer-response')
+                }
             }
             catch(err) {
                 console.error(err)
@@ -65,7 +76,6 @@ export default {
         }
     },
     mounted() {
-
         let code = getFromLocal('gameCode')
         if (!code) code = generateCode()
 
@@ -83,7 +93,14 @@ export default {
             <div style="font-size: 24px; padding-top: 24    px">Game Code:</div> 
             <h1 class="accent--text" style="text-align: center">{{lobbyCode}}</h1>
         </div>
-        <div style="width: 45%">
+        <div style="width: 100%">
+            <v-text-field
+                outlined
+                label="Screen Name"
+                v-model="screenName"
+            ></v-text-field>
+        </div>
+        <div style="width: 100%">
             <v-text-field
                 outlined
                 label="Points To Win"
@@ -94,5 +111,10 @@ export default {
             <v-btn style="margin-right: 8px" @click="cancel">Cancel</v-btn>
             <v-btn color="primary" @click="startGame">Everybody's in!</v-btn>
         </div>
+        <message-dialog
+            v-model="showMessage"
+            :body="messageBody"
+            :header="messageHeader"
+        ></message-dialog>
     </v-layout>
 </template>

@@ -2,9 +2,10 @@
 import { dbListen, dbReadOnce, dbUpdate, dbWrite } from '../../assets/services'
 import { clearLocal, getFromLocal, setInLocal } from '../../assets/utilities'
 import MessageDialog from '../../components/MessageDialog.vue'
+import WaitingScreen from '../../components/WaitingScreen.vue'
 
 export default {
-  components: { MessageDialog },
+  components: { MessageDialog, WaitingScreen },
     name: 'HeSaidLobby',
     data() {
         return {
@@ -28,7 +29,7 @@ export default {
             messageHeader: '',
             submissions: 0,
             gameSyncd: false,
-            submitted: false,
+            submitted: true,
             currentRound: 0,
             firstPass: true
         }
@@ -73,16 +74,15 @@ export default {
         async submit() {
             const check = await this.postResponse()
             if(check) {
-                if(this.qIdx < this.questions.length - 1) {
-                    this.userResponse = ''
-                    this.submitted = true
-                }
-                
-                else {
-                    if(getFromLocal('playerId') == 0)
-                        dbUpdate(`games/${getFromLocal('gameCode')}`, { state: 'finished' })
-
-                    this.$router.push('/he-said-results')
+                this.submitted = true
+                this.userResponse = ''
+                if(this.qIdx === this.questions.length - 1) {
+                    if(getFromLocal('playerId') != 0) {
+                        dbListen(`games/${getFromLocal('gameCode')}/state`, snap => {
+                            if(snap.val() === 'finished') 
+                                this.$router.push('he-said-results')
+                        })
+                    }
                 }
             }
             else {
@@ -105,12 +105,11 @@ export default {
         },
         async syncGame() {
             const gameCode = getFromLocal('gameCode')
-            const round = getFromLocal('currentRound')
             const playerId = getFromLocal('playerId')
 
             const check = await dbReadOnce(`games/${gameCode}`)
 
-            if(!gameCode || round === null || round === undefined || playerId === null || playerId === undefined || !check) { 
+            if(!gameCode || playerId === null || playerId === undefined || !check) { 
                 this.showMessage = true
                 this.messageBody = 'Looks like your game ended, try going back to the home screen and joining another one.'
                 this.messageHeader = 'Game Over'
@@ -128,7 +127,6 @@ export default {
                 dbListen(`stories/${gameCode}`, async snap => {
                     const data = snap.val()
                     const players = getFromLocal('playerCount')
-                    const round = getFromLocal('currentRound')
                     
                     
                     if(data && !this.firstPass)
@@ -144,9 +142,15 @@ export default {
 
                     if(this.submissions === players) {
                         await dbUpdate(`games/${gameCode}`, { currentRound: this.qIdx + 1, submissions: 0 })
-                        this.qIdx++
-                        this.submitted = false
-                        this.submissions = 0
+                        if(this.qIdx < this.questions.length - 1) {
+                            this.qIdx++
+                            this.submitted = false
+                            this.submissions = 0
+                        }
+                        else {
+                            await dbUpdate(`games/${getFromLocal('gameCode')}`, { state: 'finished' })
+                            this.$router.push('he-said-results')
+                        }
                     }
                     else
                         await dbUpdate(`games/${gameCode}`, { submissions: this.submissions })
@@ -195,7 +199,7 @@ export default {
 <template>
     <v-layout fill-height style="padding: 16px">
         <v-layout v-if="submitted" justify-center align-center fill-height column style="width: 100%">
-            <div>Waiting on your friends to submit...</div>
+            <waiting-screen message="Waiting on your friends to submit..."></waiting-screen>
         </v-layout>
         <v-layout v-else justify-center align-center fill-height column style="width: 100%">
             <div style="width: 100%">

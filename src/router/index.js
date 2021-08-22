@@ -10,6 +10,8 @@ import HeSaidResults from '../views/he-said-she-said/HeSaidResults.vue'
 import AnswerHome from '../views/the-answer-is/AnswerHome.vue'
 import AnswerJoin from '../views/the-answer-is/AnswerJoinGame.vue'
 import AnswerNewGame from '../views/the-answer-is/AnswerNewGame.vue'
+import AnswerQuestion from '../views/the-answer-is/AnswerQuestion.vue'
+import AnswerResponse from '../views/the-answer-is/AnswerResponse.vue'
 
 Vue.use(VueRouter)
 
@@ -58,7 +60,17 @@ const routes = [
     path: '/answer-new',
     name: 'AnswerNewGame',
     component: AnswerNewGame
-  }
+  },
+  {
+    path: '/answer-question',
+    name: 'AnswerQuestion',
+    component: AnswerQuestion
+  },
+  {
+    path: '/answer-response',
+    name: 'AnswerQuestion',
+    component: AnswerResponse
+  },
 
 ]
 
