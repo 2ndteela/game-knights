@@ -1,5 +1,6 @@
 <template>
   <v-layout style="width: 100%; padding: 16px; height: 100%" column justify-center align-center>
+      {{submitted}} {{pick}}
         <div style="width: 100%" v-if="!submitted">
             <div style="padding-bottom: 16px">What is the answer?</div>
             <v-textarea
@@ -19,18 +20,26 @@
             </div>
 
             <div 
-                v-for="(q, itr) in questions" 
+                v-for="(q, itr) in questionsList" 
                 :key="itr + '-q'" 
                 class="big-button"
                 width="100%"
                 :class="{'selected-question': q.selected}"
                 @click="pickBestAnswer(itr)"
-                >{{q.question}}</div>
-            <div>{{rawQuestions}}</div>
+            >{{q.question}}</div>
+
+            <div style="width: 92vw; position: fixed; bottom: 16px">
+                <v-btn 
+                    color="primary" 
+                    style="width: 100%" 
+                    :disabled="this.pickedIdx === -1"
+                    @click="submitPick"
+                >Submit</v-btn>
+            </div>
+
         </v-layout>
         <div v-else>
             <waiting-screen message="Your friends are working on their questions, just sit tight for a second." ></waiting-screen>
-            <v-btn @click="showQuestions">Next</v-btn>
         </div>
   </v-layout>
 </template> 
@@ -38,6 +47,8 @@
 <script>
 
 import WaitingScreen from '../../components/WaitingScreen.vue'
+import { dbReadOnce, dbUpdate, dbListen } from '../../assets/services'
+import { getFromLocal } from '../../assets/utilities'
 
 export default {
     name: 'AnswerResponse',
@@ -45,35 +56,69 @@ export default {
     data() {
         return {
             response: '',
-            questions: [],
             rawQuestions: [
                 { player: 'Jerm', question: 'How old are you?'}, 
                 { player: 'Kylo', question: 'What are the odds?'}, 
                 { player: 'Daddo', question: 'huh?'},
                 { player: 'Rando', question: 'Really long question text to test how a multi-line button is finna look'}
             ],
-            submitted: true,
-            pick: true
+            submitted: false,
+            pick: false,
+            pickedIdx: -1
         }
     },
     methods: {
-        submitResponse() {
-            this.submitted = true
-        },
-        pickBestAnswer(itr) {
-            const qs = [...this.rawQuestions]
-            qs[itr].selected = true
+        async submitResponse() {
+            if(!this.response)
+                return 
 
-            this.questions = qs
+            await dbUpdate(`games/${getFromLocal('gameCode')}`, {response: this.response})
+            this.submitted = true
+
+            dbListen(`games/${getFromLocal('gameCode')}`, async snap => {
+                const data = snap.val()
+
+                if(data.submissions === data.playerCount - 1) {
+                    await dbUpdate(`games/${getFromLocal('gameCode')}`, {submissions: 0})
+                    this.pick = true
+                }
+            })
+        },
+        pickBestAnswer(idx) {
+            this.pickedIdx = idx
         },
         showQuestions() {
             const arr = [...this.rawQuestions]
             this.questions = arr
             this.pick = true
+        },
+        async submitPick() {
+            const picked = this.rawQuestions[this.pickedIdx]
+            const player = picked.player
+
+            const playerData = await dbReadOnce(`players/${getFromLocal('gameCode')}/${player}`)
+            console.log(playerData)
+            await dbUpdate(`players/${getFromLocal('gameCode')}/${player}`, {score: playerData.score + 1})
+
         }
     },
     mounted() {
-        this.showQuestions()
+        // this.showQuestions()
+    },
+    computed: {
+        questionsList() {
+            const newArr = []
+
+            this.rawQuestions.forEach((item, itr) => {
+                const cpy = {...item}
+                if(itr === this.pickedIdx)
+                    cpy.selected = true
+
+                newArr.push(cpy)
+            })
+
+            return newArr
+        }
     }
 }
 </script>

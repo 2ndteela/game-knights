@@ -2,10 +2,11 @@
 import { dbListen, dbReadOnce, dbUpdate, dbWrite } from '../../assets/services'
 import { clearLocal, getFromLocal, setInLocal } from '../../assets/utilities'
 import MessageDialog from '../../components/MessageDialog.vue'
+import ProgressLoader from '../../components/ProgressLoader.vue'
 import WaitingScreen from '../../components/WaitingScreen.vue'
 
 export default {
-  components: { MessageDialog, WaitingScreen },
+  components: { MessageDialog, WaitingScreen, ProgressLoader },
     name: 'HeSaidLobby',
     data() {
         return {
@@ -29,7 +30,7 @@ export default {
             messageHeader: '',
             submissions: 0,
             gameSyncd: false,
-            submitted: true,
+            submitted: false,
             currentRound: 0,
             firstPass: true
         }
@@ -40,38 +41,20 @@ export default {
         },
         playerId() {
             return getFromLocal('playerId')
+        },
+        playerCount() {
+            return getFromLocal('playerCount')
         }
     }, 
 
     watch: {
-        slowReminder(newVal, Oldval) {
-            console.log('slow')
-            if(newVal) {
-                const arr = [
-                    'Bruh',
-                    'Nana types faster',
-                    'Daylight',
-                    'No, please take your time'
-                ]
-
-                const rand = Math.floor(Math.random() * arr.length)
-                this.reminders[this.reminderIdx] = arr[rand]
-                this.reminderIdx++
-
-                console.log(this.reminders)
-
-                setTimeout(() => {
-                    this.reminders[this.reminderDeleteIdx] = ''
-                    this.reminderDeleteIdx++
-                }, 2000)
-
-                this.slowReminder = false
-            }
-        }
     }, 
 
     methods: {
         async submit() {
+            if(!this.userResponse)
+                return
+
             const check = await this.postResponse()
             if(check) {
                 this.submitted = true
@@ -173,15 +156,9 @@ export default {
                         if(story)
                             this.submitted = true
                     }
-                })
 
-                // dbListen(`games/${gameCode}/remind`, snap => {
-                //     if(snap.val()) {
-                //         console.log('snap', snap.val())
-                //         this.slowReminder = true
-                //         dbWrite(`games/${gameCode}/remind`, false)
-                //     }
-                // })
+                    this.submissions = data.submissions
+                })
             }
 
         },
@@ -199,7 +176,9 @@ export default {
 <template>
     <v-layout fill-height style="padding: 16px">
         <v-layout v-if="submitted" justify-center align-center fill-height column style="width: 100%">
-            <waiting-screen message="Waiting on your friends to submit..."></waiting-screen>
+            <!-- <waiting-screen message="Waiting on your friends to submit..."></waiting-screen> -->
+            <h1 style="padding-bottom: 16px">Players Submitted</h1>
+            <progress-loader :current="submissions" :total="playerCount" ></progress-loader>
         </v-layout>
         <v-layout v-else justify-center align-center fill-height column style="width: 100%">
             <div style="width: 100%">

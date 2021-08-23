@@ -2,7 +2,7 @@
 import MessageDialog from '../../components/MessageDialog.vue'
 import InfoButton from '../../components/InfoButton.vue'
 import { setInLocal, getFromLocal, clearLocal } from '../../assets/utilities'
-import { dbUpdate, dbReadOnce } from '../../assets/services'
+import { dbUpdate, dbReadOnce, dbListen, dbRemoveListener } from '../../assets/services'
 
 export default {
     name: 'AnswerJoin',
@@ -139,6 +139,7 @@ export default {
         </v-flex>
         <v-flex v-else>
             <v-layout column justify-center align-center style="height: 100%" >
+                <h1 class="accent--text" style="text-align: center">{{gameCode}}</h1>
                 <div>Waiting on your friends...</div>
                 <div>So far {{playerCount}} have joined</div>
                 <v-btn @click="cancel" style="margin-top: 16px">Cancel</v-btn>

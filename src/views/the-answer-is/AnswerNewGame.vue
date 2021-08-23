@@ -47,13 +47,22 @@ export default {
                     this.showMessage = true
                 }
                 else {
+                    await dbUpdate(`/players/${this.lobbyCode}/${this.screenName}`, {score: 0} )
+                    const names = await dbReadOnce(`players/${this.lobbyCode}`)
+                    console.log('names', names)
+                    const nameList = []
+
+                    for(const n in names)
+                        nameList.push(n)
+
                     const toSend = {
                         state: 'started',
                         submissions: 0,
-                        pointsToWin: this.pointsToWin
+                        pointsToWin: this.pointsToWin,
+                        currentQuesioner: nameList[Math.floor(Math.random() * this.playerCount)]
                     }
+                    console.log(toSend)
                     await dbUpdate(`/games/${this.lobbyCode}`, toSend )
-                    await dbUpdate(`/players/${this.lobbyCode}/${this.screenName}`, {score: 0} )
 
                     dbRemoveListener(`games/${this.gameCode}`)
 
@@ -61,7 +70,7 @@ export default {
                     setInLocal('playerCount', this.playerCount)
                     setInLocal('playerId', this.screenName)
 
-                    this.$router.push('/answer-response')
+                    // this.$router.push('/answer-response')
                 }
             }
             catch(err) {
@@ -90,7 +99,7 @@ export default {
     <v-layout fill-height style="padding: 16px" justify-center align-center column>
         <div style="padding-bottom: 16px">
             <div>Friends in lobby: {{playerCount}}</div>
-            <div style="font-size: 24px; padding-top: 24    px">Game Code:</div> 
+            <div style="font-size: 24px; padding-top: 24px">Game Code:</div> 
             <h1 class="accent--text" style="text-align: center">{{lobbyCode}}</h1>
         </div>
         <div style="width: 100%">

@@ -40,8 +40,10 @@ export default {
     },
     methods: {
         showNext() {
-            this.blurArray[this.lastShown] = 1
-            this.lastShown++
+            if(this.lastShown <= this.blurArray.length) {
+                this.blurArray[this.lastShown] = 1
+                this.lastShown++
+            }
         },
         async getStories() {
             const allStories = await dbReadOnce(`stories/${getFromLocal('gameCode')}`)
@@ -49,7 +51,6 @@ export default {
             if(!allStories)
                 this.$router.push('/he-said-home')
 
-            console.log(allStories)
             this.startIdx = getFromLocal('playerId')
             this.allStories = allStories
             this.buildStory()
@@ -75,11 +76,12 @@ export default {
                 this.startIdx = this.allStories.length - 1
             }
 
+            else if (num === 1 && this.startIdx === this.allStories.length - 1)
+                this.startIdx = 0
+
             else
                 this.startIdx += num
 
-            this.blurArray = [0,0,0,0,0,0,0,0]
-            this.lastShown = 0
             this.buildStory()
         }
     },
@@ -91,6 +93,7 @@ export default {
 
 <template>
     <v-layout column align-center style="padding: 16px">
+        <h2 style="margin-bottom: 16px; border-bottom: 1px solid white; width: 100%" >Story #{{startIdx + 1}}</h2>
         <h3 style="width: 100%; text-align: left">{{ randomIntro }}</h3>
         <div class="line-break"></div>
 

@@ -42,7 +42,7 @@ export default {
                    this.playerCount = data.playerCount
 
                    if(data.state === 'started') {
-                        setInLocal('currentRound', 0)
+                        setInLocal('playerCount', this.playerCount)
                         dbRemoveListener(`games/${this.gameCode}`)
                         this.$router.push('/he-said-lobby')
                    }
@@ -72,7 +72,7 @@ export default {
                         this.playerCount = data.playerCount
 
                         if(data.state === 'started') {
-                            setInLocal('currentRound', 0)
+                            setInLocal('playerCount', this.playerCount)
                             dbRemoveListener(`games/${this.gameCode}`)
                             this.$router.push('/he-said-lobby')
                         }
@@ -122,6 +122,7 @@ export default {
         </v-flex>
         <v-flex v-else>
             <v-layout column justify-center align-center style="height: 100%" >
+                <h1 class="accent--text" style="text-align: center">{{gameCode}}</h1>
                 <div>Waiting on your friends...</div>
                 <div>So far {{playerCount}} have joined</div>
                 <v-btn @click="cancel" style="margin-top: 16px">Cancel</v-btn>
