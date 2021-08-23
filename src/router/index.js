@@ -7,6 +7,12 @@ import HeSaidNewGame from '../views/he-said-she-said/HeSaidNewGame.vue'
 import HeSaidLobby from '../views/he-said-she-said/HeSaidLobby.vue'
 import HeSaidResults from '../views/he-said-she-said/HeSaidResults.vue'
 
+import AnswerHome from '../views/the-answer-is/AnswerHome.vue'
+import AnswerJoin from '../views/the-answer-is/AnswerJoinGame.vue'
+import AnswerNewGame from '../views/the-answer-is/AnswerNewGame.vue'
+import AnswerQuestion from '../views/the-answer-is/AnswerQuestion.vue'
+import AnswerResponse from '../views/the-answer-is/AnswerResponse.vue'
+
 Vue.use(VueRouter)
 
 const routes = [
@@ -39,7 +45,33 @@ const routes = [
     path: '/he-said-results',
     name: 'HeSaidResults',
     component: HeSaidResults
-  }
+  },
+  {
+    path: '/answer-home',
+    name: 'AnswerHome',
+    component: AnswerHome
+  },
+  {
+    path: '/answer-join',
+    name: 'AnswerJoin',
+    component: AnswerJoin
+  },
+  {
+    path: '/answer-new',
+    name: 'AnswerNewGame',
+    component: AnswerNewGame
+  },
+  {
+    path: '/answer-question',
+    name: 'AnswerQuestion',
+    component: AnswerQuestion
+  },
+  {
+    path: '/answer-response',
+    name: 'AnswerQuestion',
+    component: AnswerResponse
+  },
+
 ]
 
 const router = new VueRouter({

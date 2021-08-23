@@ -1,16 +1,16 @@
 <script>
-
-import { setInLocal, getFromLocal, clearLocal } from '../../assets/utilities.js'
-import { dbUpdate, dbReadOnce, dbListen, dbRemoveListener } from '../../assets/services.js'
 import MessageDialog from '../../components/MessageDialog.vue'
 import InfoButton from '../../components/InfoButton.vue'
+import { setInLocal, getFromLocal, clearLocal } from '../../assets/utilities'
+import { dbUpdate, dbReadOnce, dbListen, dbRemoveListener } from '../../assets/services'
 
 export default {
-    name: 'HeSaidJoinGame',
+    name: 'AnswerJoin',
     components: { MessageDialog, InfoButton },
     data() {
         return {
             gameCode: '',
+            screenName: '',
             isJoined: false,
             playerCount: 0,
             messageDailog: false,
@@ -24,30 +24,38 @@ export default {
     },
     methods: {
         async joinGame() {
-           const check = await dbReadOnce(`games/${this.gameCode}`)
-           if(!check) {
-               this.messageHeader = 'No Dice'
-               this.messageBody = 'No game with the code: ' + this.gameCode + ' exsits'
-               this.messageDailog = true
-           }
-           else {
-               await dbUpdate(`games/${this.gameCode}`, { playerCount: check.playerCount + 1 })
-               setInLocal('gameCode', this.gameCode)
-               setInLocal('playerId', check.playerCount)
-               this.isJoined = true
+            const check = await dbReadOnce(`games/${this.gameCode}`)
+            const nameCheck = await dbReadOnce(`/players/${this.gameCode}/${this.screenName}`)
+            if(!check) {
+                this.messageHeader = 'No Dice'
+                this.messageBody = 'No game with the code: ' + this.gameCode + ' exsits'
+                this.messageDailog = true
+            }
 
-               dbListen(`games/${this.gameCode}`, snap => {
-                   const data = snap.val()
+            else if(!!nameCheck) {
+                this.messageHeader = 'Same name... Awkward...'
+                this.messageBody = 'Sorry, someone else already has that name in this game. You\'re gonna need a new one.'
+                this.messageDailog = true
+            }
+            else {
+                await dbUpdate(`games/${this.gameCode}`, { playerCount: check.playerCount + 1 })
+                await dbUpdate(`players/${this.gameCode}/${this.screenName}`, {score: 0})
+                setInLocal('gameCode', this.gameCode)
+                setInLocal('playerId', this.screenName)
+                this.isJoined = true
 
-                   this.playerCount = data.playerCount
+                dbListen(`games/${this.gameCode}`, snap => {
+                    const data = snap.val()
 
-                   if(data.state === 'started') {
-                        setInLocal('playerCount', this.playerCount)
-                        dbRemoveListener(`games/${this.gameCode}`)
-                        this.$router.push('/he-said-lobby')
-                   }
-               })
-           }
+                    this.playerCount = data.playerCount
+
+                    if(data.state === 'started') {
+                            setInLocal('currentRound', 0)
+                            dbRemoveListener(`games/${this.gameCode}`)
+                            this.$router.push('/answer-question')
+                    }
+                })
+            }
         },
         async checkForActiveLobby() {
             const lobby = getFromLocal('gameCode')
@@ -57,10 +65,10 @@ export default {
             const check = await dbReadOnce(`games/${lobby}`)
             if(check) {
                 if (check.state === 'started') 
-                    this.$router.push('he-said-lobby')
+                    this.$router.push('/answer-question')
 
                 else if (check.state === 'finished') {
-                    this.$router.push('he-said-results/')
+                    this.$router.push('/answer-leader-board')
                 }
 
                 else {
@@ -72,9 +80,9 @@ export default {
                         this.playerCount = data.playerCount
 
                         if(data.state === 'started') {
-                            setInLocal('playerCount', this.playerCount)
+                            setInLocal('currentRound', 0)
                             dbRemoveListener(`games/${this.gameCode}`)
-                            this.$router.push('/he-said-lobby')
+                            this.$router.push('/answer-response')
                         }
                     })
                 }
@@ -105,6 +113,15 @@ export default {
         <v-flex style="width: 100%" v-if="!isJoined">
             <v-layout column justify-end fill-height>
                 <div>
+                    <v-text-field
+                        outlined
+                        label="Screen Name"
+                        v-model="screenName"
+                        hide-details
+                        color="accent"
+                    ></v-text-field>
+                </div>
+                <div style="padding-top: 16px">
                     <v-text-field 
                         outlined
                         label="Game Code"

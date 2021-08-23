@@ -1,5 +1,12 @@
 <script>
+import { dbListen, dbReadOnce, dbUpdate, dbWrite } from '../../assets/services'
+import { clearLocal, getFromLocal, setInLocal } from '../../assets/utilities'
+import MessageDialog from '../../components/MessageDialog.vue'
+import ProgressLoader from '../../components/ProgressLoader.vue'
+import WaitingScreen from '../../components/WaitingScreen.vue'
+
 export default {
+  components: { MessageDialog, WaitingScreen, ProgressLoader },
     name: 'HeSaidLobby',
     data() {
         return {
@@ -17,33 +24,161 @@ export default {
             ],
             started: true,
             qIdx: 0,
-            userResponse: ''
+            userResponse: '',
+            showMessage: false,
+            messageBody: '',
+            messageHeader: '',
+            submissions: 0,
+            gameSyncd: false,
+            submitted: false,
+            currentRound: 0,
+            firstPass: true
         }
     },
     computed: {
         currentQuestion() {
             return this.questions[this.qIdx]
+        },
+        playerId() {
+            return getFromLocal('playerId')
+        },
+        playerCount() {
+            return getFromLocal('playerCount')
         }
     }, 
+
+    watch: {
+    }, 
+
     methods: {
-        submit() {
-            if(this.qIdx < this.questions.length - 1)
-                this.qIdx++
-            
-            else this.$router.push('/he-said-results')
+        async submit() {
+            if(!this.userResponse)
+                return
+
+            const check = await this.postResponse()
+            if(check) {
+                this.submitted = true
+                this.userResponse = ''
+                if(this.qIdx === this.questions.length - 1) {
+                    if(getFromLocal('playerId') != 0) {
+                        dbListen(`games/${getFromLocal('gameCode')}/state`, snap => {
+                            if(snap.val() === 'finished') 
+                                this.$router.push('he-said-results')
+                        })
+                    }
+                }
+            }
+            else {
+                this.showMessage = true
+                this.messageBody = 'There was an error submitting your response. You game might be over or out of sync'
+                this.messageHeader = 'Error'
+            }
+        },
+        async postResponse() {
+            try {
+                const story = getFromLocal('gameCode')
+                const playerId = getFromLocal('playerId')
+                await dbWrite(`stories/${story}/${playerId}/${this.qIdx}`, this.userResponse)
+                return true
+            }
+            catch(err) {
+                console.error(err)
+                return false
+            }
+        },
+        async syncGame() {
+            const gameCode = getFromLocal('gameCode')
+            const playerId = getFromLocal('playerId')
+
+            const check = await dbReadOnce(`games/${gameCode}`)
+
+            if(!gameCode || playerId === null || playerId === undefined || !check) { 
+                this.showMessage = true
+                this.messageBody = 'Looks like your game ended, try going back to the home screen and joining another one.'
+                this.messageHeader = 'Game Over'
+            }
+
+            if(playerId === 0) {
+
+                if(!this.gameSyncd) {
+                    const data = await dbReadOnce(`games/${gameCode}`)
+                    this.submissions = data.submissions
+                    this.qIdx = data.currentRound
+                    this.gameSyncd = true
+                }
+
+                dbListen(`stories/${gameCode}`, async snap => {
+                    const data = snap.val()
+                    const players = getFromLocal('playerCount')
+                    
+                    
+                    if(data && !this.firstPass)
+                        this.submissions++
+
+                    else {
+                        this.firstPass = false
+                        
+                        const subCheck = data[0][this.qIdx]
+                        if(subCheck)
+                            this.submitted = true
+                    }
+
+                    if(this.submissions === players) {
+                        await dbUpdate(`games/${gameCode}`, { currentRound: this.qIdx + 1, submissions: 0 })
+                        if(this.qIdx < this.questions.length - 1) {
+                            this.qIdx++
+                            this.submitted = false
+                            this.submissions = 0
+                        }
+                        else {
+                            await dbUpdate(`games/${getFromLocal('gameCode')}`, { state: 'finished' })
+                            this.$router.push('he-said-results')
+                        }
+                    }
+                    else
+                        await dbUpdate(`games/${gameCode}`, { submissions: this.submissions })
+                })
+            }
+            else {
+                dbListen(`games/${gameCode}`, async snap => {
+                    const data = snap.val()
+
+                    if(data.submissions === 0 && this.gameSyncd) {
+                        this.submitted = false
+                        this.qIdx++
+                    }
+                    
+                    else if (!this.gameSyncd) {
+                        this.gameSyncd = true
+                        this.qIdx = data.currentRound
+
+                        const story = await dbReadOnce(`stories/${gameCode}/${getFromLocal('playerId')}/${this.qIdx}`)
+                        if(story)
+                            this.submitted = true
+                    }
+
+                    this.submissions = data.submissions
+                })
+            }
+
+        },
+        goBack() {
+            clearLocal()
+            this.$router.push('he-said-home')
         }
+    },
+    mounted() {
+        this.syncGame()
     }
 }
 </script>
 
 <template>
     <v-layout fill-height style="padding: 16px">
-        <v-btn icon style="position: fixed; top: 68px; right: 12px" >
-            <v-icon>mdi-information-outline</v-icon>
-        </v-btn>
-        <v-layout v-if="!started" justify-center align-center column>
-            <h2 class="accent--text"     style="text-align: center; padding-bottom: 32px">Hold up, your friends are still joining...</h2>
-            <div>If you have questions, hit the icon in the top right to learn about He Said She Said</div>
+        <v-layout v-if="submitted" justify-center align-center fill-height column style="width: 100%">
+            <!-- <waiting-screen message="Waiting on your friends to submit..."></waiting-screen> -->
+            <h1 style="padding-bottom: 16px">Players Submitted</h1>
+            <progress-loader :current="submissions" :total="playerCount" ></progress-loader>
         </v-layout>
         <v-layout v-else justify-center align-center fill-height column style="width: 100%">
             <div style="width: 100%">
@@ -62,11 +197,18 @@ export default {
                 v-model="userResponse"
                 hide-details
                 ></v-text-field>
-
+                
                 <v-btn color="primary" style="margin-top: 8px; width: 100%" @click="submit">Submit</v-btn>
+                <div style="padding-top: 16px; text-align: center" v-if="currentQuestion.helpText" >{{currentQuestion.helpText}}</div>
             </div>
         </v-layout>
-
+        <message-dialog
+            v-model="showMessage"
+            :body="messageBody"
+            :header="messageHeader"
+            :callback="goBack"
+        >
+        </message-dialog>
     </v-layout>
 </template>
 
