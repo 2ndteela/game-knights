@@ -1,5 +1,5 @@
 <script>
-import { dbReadOnce, dbUpdate, dbWrite } from '../../assets/services'
+import { dbReadOnce } from '../../assets/services'
 import { getFromLocal } from '../../assets/utilities'
 import ResultsHider from '../../components/ResultsHider.vue'
 
@@ -26,19 +26,19 @@ export default {
                 'Once upon a time...',
                 'So, this one time...',
                 "Y'all ain't gonna believe this but,",
-                'Shut your pie and listen up,'
+                'Shut your pie and listen up,',
+                'And it came to pass that...'
             ],
             blurArray: [0,0,0,0,0,0,0,0],
             lastShown: 0,
-            startIdx: 0
-        }
-    },
-    computed: {
-        randomIntro() {
-            return this.intros[Math.floor(Math.random() * this.intros.length)]
+            startIdx: 0,
+            pickedIntro: ''
         }
     },
     methods: {
+        randomIntro() {
+            this.pickedIntro = this.intros[Math.floor(Math.random() * this.intros.length)]
+        },
         showNext() {
             if(this.lastShown <= this.blurArray.length) {
                 this.blurArray[this.lastShown] = 1
@@ -69,6 +69,7 @@ export default {
             this.results = arr
         },
         nextStory(num) {
+            this.randomIntro()
             if(num === 0)
                 this.startIdx = getFromLocal('playerId')
 
@@ -82,11 +83,15 @@ export default {
             else
                 this.startIdx += num
 
+            this.blurArray = [0,0,0,0,0,0,0,0]
+            this.lastShown = 0
+
             this.buildStory()
         }
     },
     mounted() {
         this.getStories()
+        this.randomIntro()
     }
 }
 </script>
@@ -94,7 +99,7 @@ export default {
 <template>
     <v-layout column align-center style="padding: 16px">
         <h2 style="margin-bottom: 16px; border-bottom: 1px solid white; width: 100%" >Story #{{startIdx + 1}}</h2>
-        <h3 style="width: 100%; text-align: left">{{ randomIntro }}</h3>
+        <h3 style="width: 100%; text-align: left">{{ pickedIntro }}</h3>
         <div class="line-break"></div>
 
         <results-hider :reveal="blurArray[0]">

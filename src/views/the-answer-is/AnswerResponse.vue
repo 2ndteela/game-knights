@@ -1,6 +1,5 @@
 <template>
   <v-layout style="width: 100%; padding: 16px; height: 100%" column justify-center align-center>
-      {{submitted}} {{pick}}
         <div style="width: 100%" v-if="!submitted">
             <div style="padding-bottom: 16px">What is the answer?</div>
             <v-textarea
@@ -47,8 +46,8 @@
 <script>
 
 import WaitingScreen from '../../components/WaitingScreen.vue'
-import { dbReadOnce, dbUpdate, dbListen } from '../../assets/services'
-import { getFromLocal } from '../../assets/utilities'
+import { dbReadOnce, dbUpdate, dbListen, getAnswers } from '../../assets/services'
+import { gameCodeString, getFromLocal, playersString } from '../../assets/utilities'
 
 export default {
     name: 'AnswerResponse',
@@ -57,10 +56,10 @@ export default {
         return {
             response: '',
             rawQuestions: [
-                { player: 'Jerm', question: 'How old are you?'}, 
-                { player: 'Kylo', question: 'What are the odds?'}, 
-                { player: 'Daddo', question: 'huh?'},
-                { player: 'Rando', question: 'Really long question text to test how a multi-line button is finna look'}
+                // { player: 'Jerm', question: 'How old are you?'}, 
+                // { player: 'Kylo', question: 'What are the odds?'}, 
+                // { player: 'Daddo', question: 'huh?'},
+                // { player: 'Rando', question: 'Really long question text to test how a multi-line button is finna look'}
             ],
             submitted: false,
             pick: false,
@@ -72,14 +71,14 @@ export default {
             if(!this.response)
                 return 
 
-            await dbUpdate(`games/${getFromLocal('gameCode')}`, {response: this.response})
+            await dbUpdate(gameCodeString(), {response: this.response, state: 'answered'})
             this.submitted = true
 
-            dbListen(`games/${getFromLocal('gameCode')}`, async snap => {
+            dbListen(gameCodeString(), async snap => {
                 const data = snap.val()
 
                 if(data.submissions === data.playerCount - 1) {
-                    await dbUpdate(`games/${getFromLocal('gameCode')}`, {submissions: 0})
+                    await dbUpdate(gameCodeString(), {submissions: 0, state: 'picking'})
                     this.pick = true
                 }
             })
@@ -95,15 +94,40 @@ export default {
         async submitPick() {
             const picked = this.rawQuestions[this.pickedIdx]
             const player = picked.player
+            const playerData = await dbReadOnce(playersString(player))
+            
+            await dbUpdate(playersString(player), {score: playerData.score + 1})
+            await dbUpdate(gameCodeString(), { state: 'standings' })
+            this.$router.push('/answer-leader-board')
 
-            const playerData = await dbReadOnce(`players/${getFromLocal('gameCode')}/${player}`)
-            console.log(playerData)
-            await dbUpdate(`players/${getFromLocal('gameCode')}/${player}`, {score: playerData.score + 1})
+        },
+        async syncGame() {
+            const gameData = await dbReadOnce(gameCodeString())
 
+            if(gameData.state === 'answering') {
+                this.submitted = false
+                this.pick = false
+            }
+            else if (gameData.state === 'answered') {
+                this.submitted = true
+                this.pick = false
+            }
+            else if (gameData.state === 'picking') {
+                this.submitted = true
+                this.pick = true
+            }
+            else if (gameData.state === 'standings') {
+                this.$router.push('/answer-leader-board')
+            }
+            else {
+                this.submitted = false
+                this.pick = false
+                await dbUpdate(gameCodeString(), {state: 'answering'})
+            }
         }
     },
     mounted() {
-        // this.showQuestions()
+        this.syncGame()
     },
     computed: {
         questionsList() {
@@ -118,6 +142,14 @@ export default {
             })
 
             return newArr
+        }
+    },
+    watch: {
+        pick: async function(newVal) {
+            if(newVal) {
+                const answerList = await getAnswers()
+                this.rawQuestions = answerList
+            }
         }
     }
 }

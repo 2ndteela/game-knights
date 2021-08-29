@@ -39,17 +39,16 @@ export default {
         },
         async startGame() {
             try {
-
-                const nameCheck = await dbReadOnce(`/players/${this.lobbyCode}/${this.screenName}`)
+                const name = this.screenName.trim()
+                const nameCheck = await dbReadOnce(`/players/${this.lobbyCode}/${name}`)
                 if(!!nameCheck) {
                     this.messageBody = 'Someone already has that name in this lobby. You\'re gonna need a new one.'
                     this.messageHeader = 'Same name... Awkward...'
                     this.showMessage = true
                 }
                 else {
-                    await dbUpdate(`/players/${this.lobbyCode}/${this.screenName}`, {score: 0} )
+                    await dbUpdate(`/players/${this.lobbyCode}/${name}`, {score: 0} )
                     const names = await dbReadOnce(`players/${this.lobbyCode}`)
-                    console.log('names', names)
                     const nameList = []
 
                     for(const n in names)
@@ -59,7 +58,8 @@ export default {
                         state: 'started',
                         submissions: 0,
                         pointsToWin: this.pointsToWin,
-                        currentQuesioner: nameList[Math.floor(Math.random() * this.playerCount)]
+                        currentQuestioner: nameList[Math.floor(Math.random() * this.playerCount)],
+                        order: nameList.join('-')
                     }
                     console.log(toSend)
                     await dbUpdate(`/games/${this.lobbyCode}`, toSend )
@@ -68,9 +68,9 @@ export default {
 
                     setInLocal('gameCode', this.lobbyCode)
                     setInLocal('playerCount', this.playerCount)
-                    setInLocal('playerId', this.screenName)
+                    setInLocal('playerId', name)
 
-                    // this.$router.push('/answer-response')
+                    this.$router.push('/answer-question')
                 }
             }
             catch(err) {

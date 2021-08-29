@@ -1,4 +1,4 @@
-import { getFromLocal, setInLocal } from './utilities.js'
+import { getFromLocal, playersString, setInLocal } from './utilities.js'
 import firebase from './firebase.js'
 
 export const dbWrite = async (path, data) => {
@@ -53,3 +53,40 @@ export const dbRemoveListener = path => {
         throw err
     }
 }
+
+export const getAnswers = async () => {
+    try {
+        const players = await dbReadOnce(playersString())
+        const arr = []
+
+        for(let p in players) {
+            if(players[p].question)
+                arr.push( {
+                    player: p,
+                    question: players[p].question 
+                })
+        }
+        return arr
+    }
+    catch (err) {
+        throw err
+    }
+}
+
+export const getPlayerScores = async () => {
+    try {
+        const players = await dbReadOnce(playersString())
+        const arr = []
+
+        for(let p in players) {
+            arr.push( {
+                name: p,
+                score: players[p].score 
+            })
+        }
+        return arr
+    }
+    catch (err) {
+        throw err
+    }
+} 

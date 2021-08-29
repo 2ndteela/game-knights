@@ -1,7 +1,7 @@
 <script>
 import MessageDialog from '../../components/MessageDialog.vue'
 import InfoButton from '../../components/InfoButton.vue'
-import { setInLocal, getFromLocal, clearLocal } from '../../assets/utilities'
+import { setInLocal, getFromLocal, clearLocal, gameCodeString } from '../../assets/utilities'
 import { dbUpdate, dbReadOnce, dbListen, dbRemoveListener } from '../../assets/services'
 
 export default {
@@ -16,19 +16,21 @@ export default {
             messageDailog: false,
             messageHeader: '',
             messageBody:'',
-            infoMessage: 'He Said/She Said is like writting a story with your friends. ' +
-            'Imagine you were all sitting in a circle with a pen and paper. There are 10 prompts to the story, '+
-            'and you write your response to one of them and then pass your paper to the right. You write and pass ' + 
-            '10 times until the story is complete and it forms a mad lib.'
+            infoMessage: 'The Answer Is... is a game all about twisting your friends words. ' +
+            'One player is going to be assigned to come up with an answer. From there, the rest of you are going to come up '+
+            'questions that make that answer seem wild. From there, the answer writer will pick their favorite question ' + 
+            'kind of like Cards Against Humanity or Apples to Apples.'
         }
     },
     methods: {
         async joinGame() {
-            const check = await dbReadOnce(`games/${this.gameCode}`)
-            const nameCheck = await dbReadOnce(`/players/${this.gameCode}/${this.screenName}`)
+            const name = this.screenName.trim()
+            const gameCode = this.gameCode.trim()
+            const check = await dbReadOnce(`games/${gameCode}`)
+            const nameCheck = await dbReadOnce(`/players/${gameCode}/${name}`)
             if(!check) {
                 this.messageHeader = 'No Dice'
-                this.messageBody = 'No game with the code: ' + this.gameCode + ' exsits'
+                this.messageBody = 'No game with the code: ' + gameCode + ' exsits'
                 this.messageDailog = true
             }
 
@@ -38,21 +40,28 @@ export default {
                 this.messageDailog = true
             }
             else {
-                await dbUpdate(`games/${this.gameCode}`, { playerCount: check.playerCount + 1 })
-                await dbUpdate(`players/${this.gameCode}/${this.screenName}`, {score: 0})
-                setInLocal('gameCode', this.gameCode)
-                setInLocal('playerId', this.screenName)
+                await dbUpdate(`games/${gameCode}`, { playerCount: check.playerCount + 1 })
+                await dbUpdate(`players/${gameCode}/${name}`, {score: 0})
+                setInLocal('gameCode', gameCode)
+                setInLocal('playerId', name)
                 this.isJoined = true
 
-                dbListen(`games/${this.gameCode}`, snap => {
+                dbListen(`games/${gameCode}`, async snap => {
                     const data = snap.val()
 
                     this.playerCount = data.playerCount
 
                     if(data.state === 'started') {
-                            setInLocal('currentRound', 0)
-                            dbRemoveListener(`games/${this.gameCode}`)
-                            this.$router.push('/answer-question')
+                        dbRemoveListener(`games/${gameCode}`)
+
+                        const players = await dbReadOnce(`players/${this.gameCode}`)
+                        const playersArr = []
+                        for(const p in players)
+                            playersArr.push(p)
+
+                        setInLocal('players', playersArr)
+
+                        this.$router.push('/answer-question')
                     }
                 })
             }
@@ -62,9 +71,9 @@ export default {
 
             if(!lobby) return
 
-            const check = await dbReadOnce(`games/${lobby}`)
+            const check = await dbReadOnce(gameCodeString())
             if(check) {
-                if (check.state === 'started') 
+                if (check.state === 'started' || check.state === 'answering' || check.state === 'answered' || check.state === 'picking' ) 
                     this.$router.push('/answer-question')
 
                 else if (check.state === 'finished') {
@@ -75,13 +84,13 @@ export default {
                     this.isJoined = true
                     this.playerCount = check.playerCount
                     
-                    dbListen(`games/${lobby}`, snap => {
+                    dbListen(gameCodeString(), snap => {
                         const data = snap.val()
                         this.playerCount = data.playerCount
 
                         if(data.state === 'started') {
                             setInLocal('currentRound', 0)
-                            dbRemoveListener(`games/${this.gameCode}`)
+                            dbRemoveListener(gameCodeString())
                             this.$router.push('/answer-response')
                         }
                     })
@@ -91,7 +100,7 @@ export default {
         },
         cancel() {
             dbUpdate('games/' + this.gameCode, { playerCount: this.playerCount = this.playerCount - 1 })
-            dbRemoveListener(`games/${this.gameCode}`)
+            dbRemoveListener(gameCodeString())
             clearLocal()
             this.isJoined = false
         }
