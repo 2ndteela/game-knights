@@ -34,6 +34,7 @@ export default {
                await dbUpdate(`games/${this.gameCode}`, { playerCount: check.playerCount + 1 })
                setInLocal('gameCode', this.gameCode)
                setInLocal('playerId', check.playerCount)
+               setInLocal('currentRound', 0)
                this.isJoined = true
 
                dbListen(`games/${this.gameCode}`, snap => {

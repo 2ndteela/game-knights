@@ -1,4 +1,4 @@
-import { getFromLocal, playersString, setInLocal } from './utilities.js'
+import { gameCodeString, getFromLocal, playersString, setInLocal } from './utilities.js'
 import firebase from './firebase.js'
 
 export const dbWrite = async (path, data) => {
@@ -90,3 +90,22 @@ export const getPlayerScores = async () => {
         throw err
     }
 } 
+
+export const getNextPlayer = async (player) => {
+    let list = getFromLocal('playerOrder')
+
+    if(list === undefined || !list) {
+        list = await dbReadOnce(gameCodeString('order'))
+        setInLocal('playerOrder', list)
+    }
+
+    const listSplit = list.split('-')
+    const idx = listSplit.indexOf(player)
+
+    if(idx === -1) 
+        throw "ERROR: Player not found!"
+
+    const next = idx + 1 % listSplit.length
+    return listSplit[next]
+
+}
