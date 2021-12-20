@@ -46,7 +46,7 @@
 <script>
 
 import WaitingScreen from '../../components/WaitingScreen.vue'
-import { dbReadOnce, dbUpdate, dbListen, getAnswers } from '../../assets/services'
+import { dbReadOnce, dbUpdate, dbListen, getAnswers, dbRemoveListener } from '../../assets/services'
 import { gameCodeString, getFromLocal, playersString } from '../../assets/utilities'
 
 export default {
@@ -75,6 +75,7 @@ export default {
             this.submitted = true
 
             dbListen(gameCodeString(), async snap => {
+                // console.log('fired from SubmitResponse in AnswerResponse')
                 const data = snap.val()
 
                 if(data.submissions === data.playerCount - 1) {
@@ -128,6 +129,10 @@ export default {
     },
     mounted() {
         this.syncGame()
+        dbUpdate(playersString(getFromLocal('playerId')), {question: null})
+    },
+    destroyed() {
+        dbRemoveListener(gameCodeString())
     },
     computed: {
         questionsList() {

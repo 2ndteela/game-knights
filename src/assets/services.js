@@ -105,7 +105,6 @@ export const getNextPlayer = async (player) => {
     if(idx === -1) 
         throw "ERROR: Player not found!"
 
-    const next = idx + 1 % listSplit.length
+    const next = (idx + 1) % listSplit.length
     return listSplit[next]
-
 }

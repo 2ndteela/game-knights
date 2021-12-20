@@ -47,6 +47,7 @@ export default {
                 this.isJoined = true
 
                 dbListen(`games/${gameCode}`, async snap => {
+                    // console.log('fired from join game in AnswerJoinGame')
                     const data = snap.val()
 
                     this.playerCount = data.playerCount
@@ -85,6 +86,7 @@ export default {
                     this.playerCount = check.playerCount
                     
                     dbListen(gameCodeString(), snap => {
+                        // console.log('fired from checkFromActiveLobby in AnswerJoinGame')
                         const data = snap.val()
                         this.playerCount = data.playerCount
 

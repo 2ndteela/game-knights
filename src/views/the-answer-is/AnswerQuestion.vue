@@ -21,15 +21,12 @@
           </div>
         </v-layout>
       </v-layout>
-      <v-layout v-else-if="picking">
-
-      </v-layout>
       <waiting-screen v-else :message="waitMessage" ></waiting-screen>
   </v-layout> 
 </template>
 
 <script>
-import { dbListen, dbReadOnce, dbUpdate, dbWrite } from '../../assets/services'
+import { dbListen, dbReadOnce, dbRemoveListener, dbUpdate, dbWrite } from '../../assets/services'
 import { gameCodeString, getFromLocal, playersString } from '../../assets/utilities'
 import WaitingScreen from '../../components/WaitingScreen.vue'
 export default {
@@ -39,7 +36,6 @@ export default {
         return {
             answerReady: false,
             submitted: false,
-            picking: false,
             response: '',
             question: ''
         }
@@ -55,7 +51,7 @@ export default {
     methods: {
       listenForMyTurn() {
           dbListen(`games/${getFromLocal('gameCode')}/currentQuestioner`, snap => {
-            console.log(snap.val(), getFromLocal('playerId'))
+            console.log('fired from listenForMyTurn in AnswerQuestion')
 
             if(snap.val() === getFromLocal('playerId'))
               this.$router.push('answer-response')
@@ -63,15 +59,12 @@ export default {
       },
       listenForResponse() {
         dbListen(`games/${getFromLocal('gameCode')}/state`, snap => {
+          console.log('fired from listenForResponse in AnswerQuestion')
           const data = snap.val()
 
           if(data === 'answered') {
             this.getPrompt()
             this.answerReady = true
-          }
-
-          else if (data === 'picking') {
-            
           }
 
           else if(data === 'standings') {
@@ -86,6 +79,7 @@ export default {
 
       async syncGame() {
         dbListen(gameCodeString('state'), snap => {
+          console.log('fired from syncGame in AnswerQuestion')
           const data = snap.val()
 
           if(data === 'answered') {
@@ -115,6 +109,11 @@ export default {
     mounted() {
       this.listenForMyTurn()
       this.listenForResponse()
+    },
+    destroyed() {
+      dbRemoveListener(`games/${getFromLocal('gameCode')}/currentQuestioner`)
+      dbRemoveListener(gameCodeString('state'))
+      dbRemoveListener(`games/${getFromLocal('gameCode')}/state`)
     }
 }
 </script>

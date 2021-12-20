@@ -33,11 +33,20 @@ export default {
             })
 
             dbListen(`/games/${this.lobbyCode}`, (snap) => {
+                // console.log('fired from openNewLobby in AnswerNewGame')
                 const data = snap.val()
                 this.playerCount = data.playerCount
             })
         },
         async startGame() {
+
+            if(this.playerCount === 1) {
+                this.messageBody = "Looks like no one is in the game yet. And you can't really play this game alone."
+                this.messageHeader = 'Awkward...' 
+                this.showMessage = true
+                return
+            }
+
             try {
                 const name = this.screenName.trim()
                 const nameCheck = await dbReadOnce(`/players/${this.lobbyCode}/${name}`)
@@ -61,7 +70,6 @@ export default {
                         currentQuestioner: nameList[Math.floor(Math.random() * this.playerCount)],
                         order: nameList.join('-')
                     }
-                    console.log(toSend)
                     await dbUpdate(`/games/${this.lobbyCode}`, toSend )
 
                     dbRemoveListener(`games/${this.gameCode}`)
