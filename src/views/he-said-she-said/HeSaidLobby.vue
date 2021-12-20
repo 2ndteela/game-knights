@@ -1,6 +1,6 @@
 <script>
-import { dbListen, dbReadOnce, dbUpdate, dbWrite } from '../../assets/services'
-import { clearLocal, getFromLocal, setInLocal } from '../../assets/utilities'
+import { dbListen, dbReadOnce, dbWrite, dbRemoveListener } from '../../assets/services'
+import { clearLocal, getFromLocal } from '../../assets/utilities'
 import MessageDialog from '../../components/MessageDialog.vue'
 import ProgressLoader from '../../components/ProgressLoader.vue'
 import WaitingScreen from '../../components/WaitingScreen.vue'
@@ -29,10 +29,13 @@ export default {
             messageBody: '',
             messageHeader: '',
             submissions: 0,
-            gameSyncd: false,
             submitted: false,
             currentRound: 0,
-            firstPass: true
+            firstPass: true,
+            completed: false,
+            counter: 45,
+            percent: 100,
+            interval: null
         }
     },
     computed: {
@@ -41,14 +44,42 @@ export default {
         },
         playerId() {
             return getFromLocal('playerId')
-        },
+        },  
         playerCount() {
             return getFromLocal('playerCount')
+        },
+        counterStart() {
+            if (this.qIdx > 0) return 30
+            return 45
         }
     }, 
+    watch : {
+        qIdx(val) {
+            if (val === 10) {
+                this.completed = true
+                clearInterval(this.interval)
+                const story = getFromLocal('gameCode')
+                dbListen(`stories/${story}`, snap => {
+                    const data = snap.val()
+                    let count = 0
+                    data.forEach(s => {
+                        if(s.length >= 10)
+                            count++
+                    })
 
-    watch: {
-    }, 
+                    this.submissions = count
+                    if (count === this.playerCount) {
+
+                        if(this.playerId == 0) 
+                            dbWrite(`games/${story}/status`, 'finished')
+
+                        dbRemoveListener(`stories/${story}`)
+                        this.$router.push('/he-said-results')
+                    }
+                })
+            }
+        }
+    },
 
     methods: {
         async submit() {
@@ -59,14 +90,8 @@ export default {
             if(check) {
                 this.submitted = true
                 this.userResponse = ''
-                if(this.qIdx === this.questions.length - 1) {
-                    if(getFromLocal('playerId') != 0) {
-                        dbListen(`games/${getFromLocal('gameCode')}/state`, snap => {
-                            if(snap.val() === 'finished') 
-                                this.$router.push('he-said-results')
-                        })
-                    }
-                }
+                this.qIdx++
+                this.counter = 30
             }
             else {
                 this.showMessage = true
@@ -98,69 +123,7 @@ export default {
                 this.messageHeader = 'Game Over'
             }
 
-            if(playerId === 0) {
-
-                if(!this.gameSyncd) {
-                    const data = await dbReadOnce(`games/${gameCode}`)
-                    this.submissions = data.submissions
-                    this.qIdx = data.currentRound
-                    this.gameSyncd = true
-                }
-
-                dbListen(`stories/${gameCode}`, async snap => {
-                    const data = snap.val()
-                    const players = getFromLocal('playerCount')
-                    
-                    
-                    if(data && !this.firstPass)
-                        this.submissions++
-
-                    else {
-                        this.firstPass = false
-                        
-                        const subCheck = data[0][this.qIdx]
-                        if(subCheck)
-                            this.submitted = true
-                    }
-
-                    if(this.submissions === players) {
-                        await dbUpdate(`games/${gameCode}`, { currentRound: this.qIdx + 1, submissions: 0 })
-                        if(this.qIdx < this.questions.length - 1) {
-                            this.qIdx++
-                            this.submitted = false
-                            this.submissions = 0
-                        }
-                        else {
-                            await dbUpdate(`games/${getFromLocal('gameCode')}`, { state: 'finished' })
-                            this.$router.push('he-said-results')
-                        }
-                    }
-                    else
-                        await dbUpdate(`games/${gameCode}`, { submissions: this.submissions })
-                })
-            }
-            else {
-                dbListen(`games/${gameCode}`, async snap => {
-                    const data = snap.val()
-
-                    if(data.submissions === 0 && this.gameSyncd) {
-                        this.submitted = false
-                        this.qIdx++
-                    }
-                    
-                    else if (!this.gameSyncd) {
-                        this.gameSyncd = true
-                        this.qIdx = data.currentRound
-
-                        const story = await dbReadOnce(`stories/${gameCode}/${getFromLocal('playerId')}/${this.qIdx}`)
-                        if(story)
-                            this.submitted = true
-                    }
-
-                    this.submissions = data.submissions
-                })
-            }
-
+            this.qIdx = parseInt(getFromLocal('currentRound'), 10)
         },
         goBack() {
             clearLocal()
@@ -169,18 +132,49 @@ export default {
     },
     mounted() {
         this.syncGame()
+
+        this.interval = setInterval(async () => { 
+
+            if(this.qIdx > 10) {
+                this.completed = true
+                return
+            }
+
+            if(this.counter <= 0) {
+                this.userResponse = 'REDACTED'
+                await this.submit()
+                this.counter = 30
+                this.percent = 100
+                
+            }
+            else if(this.showMessage) { /* do nothing on error */ }
+            else if(this.completed) {
+
+            }
+            else {
+                this.counter--   
+                this.percent = Math.floor((this.counter / this.counterStart) * 100)
+            }
+              
+        }, 1000)
     }
 }
 </script>
 
 <template>
     <v-layout fill-height style="padding: 16px">
-        <v-layout v-if="submitted" justify-center align-center fill-height column style="width: 100%">
-            <!-- <waiting-screen message="Waiting on your friends to submit..."></waiting-screen> -->
+        <v-layout v-if="completed" justify-center align-center fill-height column style="width: 100%">
             <h1 style="padding-bottom: 16px">Players Submitted</h1>
             <progress-loader :current="submissions" :total="playerCount" ></progress-loader>
         </v-layout>
+        
         <v-layout v-else justify-center align-center fill-height column style="width: 100%">
+            <div style="width: 100%; display: flex; justify-content: center; align-items: center; height: 100px">
+                <div style="position: relative">
+                    <v-progress-circular :value="percent" size="50" :color=" counter > 10 ? 'accent' : 'error'" width="4"></v-progress-circular>
+                    <div style="position: absolute; top: 15px; left: 12px; text-align: center; width: 24px;">{{counter}}</div>
+                </div>
+            </div>
             <div style="width: 100%">
                 <div style="padding-bottom: 4px">{{currentQuestion.text}}</div>
                 

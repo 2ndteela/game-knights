@@ -25,7 +25,6 @@ export default {
 
             else {
                 this.show = true
-                console.log('show message')
             }
         }
     }

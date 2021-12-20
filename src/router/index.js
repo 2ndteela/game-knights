@@ -12,6 +12,7 @@ import AnswerJoin from '../views/the-answer-is/AnswerJoinGame.vue'
 import AnswerNewGame from '../views/the-answer-is/AnswerNewGame.vue'
 import AnswerQuestion from '../views/the-answer-is/AnswerQuestion.vue'
 import AnswerResponse from '../views/the-answer-is/AnswerResponse.vue'
+import AnswerLeaderBoard from '../views/the-answer-is/AnswerLeaderBoard.vue'
 
 Vue.use(VueRouter)
 
@@ -71,7 +72,11 @@ const routes = [
     name: 'AnswerQuestion',
     component: AnswerResponse
   },
-
+  {
+    path: '/answer-leader-board',
+    name: 'AnswerLeaderBoard',
+    component: AnswerLeaderBoard
+  }
 ]
 
 const router = new VueRouter({

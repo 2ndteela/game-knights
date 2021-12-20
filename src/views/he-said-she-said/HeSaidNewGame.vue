@@ -26,10 +26,12 @@ export default {
 
             dbListen(`/games/${this.lobbyCode}`, (snap) => {
                 const data = snap.val()
-                this.playerCount = data.playerCount
+                if(!!data)
+                    this.playerCount = data.playerCount
             })
 
             setInLocal('playerId', 0)
+            setInLocal('currentRound', 0)
         },
         async startGame() {
             try {
@@ -65,12 +67,10 @@ export default {
         }
     },
     mounted() {
-
         let code = getFromLocal('gameCode')
         if (!code) code = generateCode()
 
         this.lobbyCode = code
-
         this.openNewLobby()
     }
 }

@@ -33,23 +33,31 @@ export default {
             })
 
             dbListen(`/games/${this.lobbyCode}`, (snap) => {
+                // console.log('fired from openNewLobby in AnswerNewGame')
                 const data = snap.val()
                 this.playerCount = data.playerCount
             })
         },
         async startGame() {
-            try {
 
-                const nameCheck = await dbReadOnce(`/players/${this.lobbyCode}/${this.screenName}`)
+            if(this.playerCount === 1) {
+                this.messageBody = "Looks like no one is in the game yet. And you can't really play this game alone."
+                this.messageHeader = 'Awkward...' 
+                this.showMessage = true
+                return
+            }
+
+            try {
+                const name = this.screenName.trim()
+                const nameCheck = await dbReadOnce(`/players/${this.lobbyCode}/${name}`)
                 if(!!nameCheck) {
                     this.messageBody = 'Someone already has that name in this lobby. You\'re gonna need a new one.'
                     this.messageHeader = 'Same name... Awkward...'
                     this.showMessage = true
                 }
                 else {
-                    await dbUpdate(`/players/${this.lobbyCode}/${this.screenName}`, {score: 0} )
+                    await dbUpdate(`/players/${this.lobbyCode}/${name}`, {score: 0} )
                     const names = await dbReadOnce(`players/${this.lobbyCode}`)
-                    console.log('names', names)
                     const nameList = []
 
                     for(const n in names)
@@ -59,18 +67,18 @@ export default {
                         state: 'started',
                         submissions: 0,
                         pointsToWin: this.pointsToWin,
-                        currentQuesioner: nameList[Math.floor(Math.random() * this.playerCount)]
+                        currentQuestioner: nameList[Math.floor(Math.random() * this.playerCount)],
+                        order: nameList.join('-')
                     }
-                    console.log(toSend)
                     await dbUpdate(`/games/${this.lobbyCode}`, toSend )
 
                     dbRemoveListener(`games/${this.gameCode}`)
 
                     setInLocal('gameCode', this.lobbyCode)
                     setInLocal('playerCount', this.playerCount)
-                    setInLocal('playerId', this.screenName)
+                    setInLocal('playerId', name)
 
-                    // this.$router.push('/answer-response')
+                    this.$router.push('/answer-question')
                 }
             }
             catch(err) {

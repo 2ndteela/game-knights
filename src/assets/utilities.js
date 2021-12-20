@@ -35,3 +35,17 @@ export const generateCode = () => {
 
     return code
 }
+
+export const gameCodeString = path => {
+    if(!path)
+        return `games/${getFromLocal('gameCode')}`
+
+    return `games/${getFromLocal('gameCode')}/${path}`
+}
+
+export const playersString = path => {
+    if(!path)
+        return `players/${getFromLocal('gameCode')}`
+
+    return `players/${getFromLocal('gameCode')}/${path}`
+}
