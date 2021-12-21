@@ -49,3 +49,7 @@ export const playersString = path => {
 
     return `players/${getFromLocal('gameCode')}/${path}`
 }
+
+export const createRandomAnswer = () => {
+    
+}

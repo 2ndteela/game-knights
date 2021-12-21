@@ -1,7 +1,10 @@
 <template>
   <v-layout style="width: 100%; padding: 16px; height: 100%" column justify-center align-center>
         <div style="width: 100%" v-if="!submitted">
-            <div style="padding-bottom: 16px">What is the answer?</div>
+            <v-layout style="padding-bottom: 16px" align-center> 
+                <count-down :start="30" :callback="() => {}"></count-down>  
+                <div style="padding-left: 8px">What is the answer?</div> 
+            </v-layout>
             <v-textarea
             v-model="response"
             hide-details
@@ -46,12 +49,13 @@
 <script>
 
 import WaitingScreen from '../../components/WaitingScreen.vue'
+import CountDown from '../../components/CountDown.vue'
 import { dbReadOnce, dbUpdate, dbListen, getAnswers, dbRemoveListener } from '../../assets/services'
 import { gameCodeString, getFromLocal, playersString } from '../../assets/utilities'
 
 export default {
     name: 'AnswerResponse',
-    components: { WaitingScreen },
+    components: { WaitingScreen, CountDown },
     data() {
         return {
             response: '',
