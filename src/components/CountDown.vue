@@ -54,7 +54,6 @@ export default {
         this.setTimer()
     },
     destroyed() {
-        alert('aaaaaahhh noooo')
         setInLocal('canReset', 'true')
     }
 }
