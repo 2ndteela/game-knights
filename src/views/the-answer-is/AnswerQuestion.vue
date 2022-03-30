@@ -21,7 +21,23 @@
           </div>
         </v-layout>
       </v-layout>
-      <waiting-screen v-else :message="waitMessage" ></waiting-screen>
+      <v-layout v-else-if="submitted && answerReady" column style="height: 100%; width: 100%;" justify-start>
+        <v-layout column align-center style="width: 100%; flex-grow: 0">
+          <div>The Answer Was</div>
+          <h2>{{response}}</h2>
+        </v-layout>
+        <v-layout column style="padding-top: 8px">
+          <div>Here's everyone's responses</div>
+          <div v-for="(p, itr) in responseList" :key="itr" > 
+            <div v-if="p.question" class="question-bubble">
+              {{p.question}}
+            </div>
+          </div>
+        </v-layout>
+      </v-layout>
+      <v-layout v-else>
+        <waiting-screen message="Waiting for an answer" ></waiting-screen>
+      </v-layout>
   </v-layout> 
 </template>
 
@@ -37,7 +53,8 @@ export default {
             answerReady: false,
             submitted: false,
             response: '',
-            question: ''
+            question: '',
+            playerResponses: [],
         }
     },
     computed: {
@@ -45,9 +62,25 @@ export default {
         if (!this.submitted && !this.answerReady)
           return 'Waiting for the answer to be sumbitted'
 
-        return 'Waiting on questions to be submitted'
+        return 'Waiting on a winner to be chosen'
+      },
+      responseList() {
+        console.log('responses', this.playerResponses)
+        if(!this.playerResponses) 
+          return []
+
+        const arr = []
+        for(let el in this.playerResponses) {
+          arr.push({
+            player: el,
+            question: this.playerResponses[el].question
+          })
+        }
+
+        return arr
       }
     },
+
     methods: {
       listenForMyTurn() {
           dbListen(`games/${getFromLocal('gameCode')}/currentQuestioner`, snap => {
@@ -67,34 +100,35 @@ export default {
             this.answerReady = true
           }
 
+          else if(data === 'picking') {
+            this.answerReady = true
+            this.submitted = true
+
+            if(!this.playerResponses.length) {
+              this.listenForPlayerResponses()
+              this.getPrompt()
+            }
+
+          }
+
           else if(data === 'standings') {
             this.$router.push('/answer-leader-board')
           }
         })
       },
+      listenForPlayerResponses() {
+        dbListen(`players/${getFromLocal('gameCode')}`, snap => {
+          console.log('fired from listenForPlayerResponses')
+          const data = snap.val()
+          console.log('players', data)
+
+          this.playerResponses = data
+
+        })
+      },
       async getPrompt() {
         const data = await dbReadOnce(gameCodeString('response'))
         this.response = data
-      },
-
-      async syncGame() {
-        dbListen(gameCodeString('state'), snap => {
-          console.log('fired from syncGame in AnswerQuestion')
-          const data = snap.val()
-
-          if(data === 'answered') {
-            this.answerReady = true
-            this.submitted = false
-          }
-          else if (data === 'answering') {
-            this.answerReady = false
-            this.submitted = false
-          }
-          else if (data === 'picking') {
-            this.answerReady = true
-            this.submitted = true
-          }
-        })
       },
 
       async submitQuestion() {
@@ -104,6 +138,8 @@ export default {
         const submissions = await dbReadOnce(gameCodeString('submissions'))
         await dbUpdate(gameCodeString(), {submissions: submissions + 1})
         this.submitted = true
+
+        this.listenForPlayerResponses()
       }
     },
     mounted() {
@@ -119,5 +155,11 @@ export default {
 </script>
 
 <style>
-
+  .question-bubble {
+    width: 100%;
+    background-color: #222;
+    padding: 8px 16px;
+    border-radius: 4px;
+    margin-top: 8px;
+  }
 </style>

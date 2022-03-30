@@ -20,7 +20,7 @@
                 </div>
         </div>
         <div class="next-round">
-            <v-btn @click="nextRound" style="width: 87%" color="primary" >Next Round</v-btn>
+            <!-- <v-btn @click="nextRound" style="width: 87%" color="primary" >Next Round</v-btn> -->
             <count-down :start="10" :callback="nextRound" ></count-down>
         </div>
       </v-layout>
@@ -55,6 +55,16 @@ export default {
         const currentQ = await dbReadOnce(gameCodeString('currentQuestioner'))
 
         if(me === currentQ) {
+
+            const newData = {}
+            this.players.forEach(player => {
+                newData[player.name] = {
+                    score: player.score,
+                }
+            })
+
+            dbUpdate(`players/${getFromLocal('gameCode')}`, newData)
+
             const next = await getNextPlayer(me)
 
             try {

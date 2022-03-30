@@ -1,13 +1,17 @@
 <template>
   <v-layout style="width: 100%; padding: 16px; height: 100%" column justify-center align-center>
         <div style="width: 100%" v-if="!submitted">
-            <div style="padding-bottom: 16px">What is the answer?</div>
+            <v-layout style="padding-bottom: 16px" align-center> 
+                <count-down :start="45" :callback="forceAnswer"></count-down>  
+                <div style="padding-left: 8px">What is the answer?</div> 
+            </v-layout>
             <v-textarea
             v-model="response"
             hide-details
             outlined 
             style="width: 100%"></v-textarea>
             <v-layout style="width: 100%; padding-top: 16px" justify-end>
+                <v-btn style="margin-right: 8px" @click="createRandomQuestion" >Help Me Out</v-btn>
                 <v-btn color="primary" @click="submitResponse" >Submit</v-btn>
             </v-layout>
         </div>
@@ -46,27 +50,89 @@
 <script>
 
 import WaitingScreen from '../../components/WaitingScreen.vue'
+import CountDown from '../../components/CountDown.vue'
 import { dbReadOnce, dbUpdate, dbListen, getAnswers, dbRemoveListener } from '../../assets/services'
 import { gameCodeString, getFromLocal, playersString } from '../../assets/utilities'
 
 export default {
     name: 'AnswerResponse',
-    components: { WaitingScreen },
+    components: { WaitingScreen, CountDown },
     data() {
         return {
             response: '',
-            rawQuestions: [
-                // { player: 'Jerm', question: 'How old are you?'}, 
-                // { player: 'Kylo', question: 'What are the odds?'}, 
-                // { player: 'Daddo', question: 'huh?'},
-                // { player: 'Rando', question: 'Really long question text to test how a multi-line button is finna look'}
-            ],
+            rawQuestions: [],
             submitted: false,
             pick: false,
             pickedIdx: -1
         }
     },
     methods: {
+        forceAnswer() {
+            
+            if(!this.response)
+                this.createRandomQuestion()
+
+            this.submitResponse()
+        },
+        createRandomQuestion() {
+            const nouns = [
+                {single: 'Idiot', plural: 'Idiots'},
+                {single: 'Man', plural: 'Men'},
+                {single: 'Jedi', plural: 'Jedi'},
+                {single: 'Thespian', plural: 'Thespians'},
+                {single: 'Drunkerd', plural: 'Drunkerds'},
+                {single: 'Unicorn', plural: 'Unicorns'},
+                {single: 'Baker', plural: 'Bakers'},
+                {single: 'Flower', plural: 'Flowers'},
+                {single: 'Elon Musk', plural: 'Elongated Muskrats'},
+                {single: 'Utahn', plural: 'Utahns'},
+                {single: 'Shifting Mass', plural: 'Shifting Masses'},
+                {single: 'Shadow', plural: 'Shadows'},
+                {single: 'Pokemon', plural: 'Pokemon'},
+                {single: 'Lover', plural: 'Lovers'},
+                {single: 'Streamer', plural: 'Streamers'},
+                {single: 'Infulancer', plural: 'Influancers'},
+                {single: 'Vegan', plural: 'Vegans'},
+                {single: 'Crossfitter', plural: 'Crossfitters'},
+                {single: 'Friend', plural: 'Friends'},
+                {single: 'Otter', plural: 'Otters'},
+                {single: 'Dwayne The Rock Johnson', plural: 'Dwayne The Rock Johnson-s'},
+                {single: 'Jock', plural: 'Jocks'},
+                {single: 'Sock', plural: 'Socks'},
+                {single: 'Ninja', plural: 'Ninjas'},
+                {single: 'Cow', plural: 'Cows'},
+                {single: 'RomCom', plural: 'RomComs'},
+                {single: 'Doggo', plural: 'Doggos'},
+                {single: 'Pupper', plural: 'Puppers'},
+                {single: 'Flooy Woofer', plural: 'Floofy Woofers'},
+            ]
+
+            const adjs = [
+                'Shady', 'Weird', 'Sketched Out', 'Stinky', 'Broken', 'Questionable', 
+                'Cowerdly', 'Heinus', 'Ugly', 'Sexy', 'Green', 'Yellow-Bellied', 'Sad',
+                'Drunken', 'High', 'Effeminate', 'Ephemeral', 'Initangible', 'Hawty',
+                'Mighty', 'Alluring', 'Heat-Packing', 'Murderous', 'Flying', 'Absolutely Jacked',
+                'Utterly Shredded', 'Violated', 'Crusty', 'Hidden', 'Disgusting', 'Scholarly',
+                'Twerking', 'Vlogging', 'Gamer', 'Distracted', 'Sanitized', 'Milky', 
+                'Scadalous', 'Punk Rock', 'Shaved', 'Crafty', 'Seemingly Normal'
+            ]
+
+            const amounts = [
+                'A Solitary', 'A Single', 'One', 'A Lone', 'A Couple', 'A Group of', 
+                'A bunch of', 'A Butt-load of', 'An Innumberal horde of', 'Thousands of',
+                'An Unending Line of', 'A Heap of' 
+            ]
+
+            const noun = nouns[Math.floor(Math.random() * nouns.length)]
+            const adj = adjs[Math.floor(Math.random() * adjs.length)]
+
+            const amountIdx = Math.floor(Math.random() * amounts.length)
+
+            const amount = amounts[amountIdx]
+
+            this.response = `${amount} ${adj} ${ amountIdx < 4 ? noun.single : noun.plural}`
+        },
+
         async submitResponse() {
             if(!this.response)
                 return 

@@ -49,7 +49,7 @@ export default {
             return getFromLocal('playerCount')
         },
         counterStart() {
-            if (this.qIdx > 0) return 30
+            if (this.qIdx > 0) return 45
             return 45
         }
     }, 
