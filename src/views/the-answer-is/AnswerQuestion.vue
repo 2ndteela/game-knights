@@ -8,6 +8,8 @@
           <h2 style="text-align: center">{{response}}</h2>
         </v-layout>
         <v-layout column style="flex: 1 0 auto" justify-center>
+          <!-- Make a timer for the question -->
+          <!-- Add info blurb -->
           <div style="padding-bottom: 4px">What is the question?</div>
           <div>
             <v-textarea

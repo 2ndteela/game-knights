@@ -91,6 +91,7 @@ export const getPlayerScores = async () => {
     }
 } 
 
+// Fix player picking order!!!!
 export const getNextPlayer = async (player) => {
     let list = getFromLocal('playerOrder')
 

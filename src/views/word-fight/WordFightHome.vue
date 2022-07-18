@@ -1,6 +1,6 @@
 <script>
 export default {
-  name: 'AnswerHome',
+  name: 'WordFightHome',
   methods: {
         goTo(route) {
             this.$router.push(route)
@@ -11,14 +11,14 @@ export default {
 
 <template>
   <v-layout column align-center fill-height>
-      <h2 style="padding: 16px 0px">The Answer Is</h2>
+      <h2 style="padding: 16px 0px">Word Fight!</h2>
       <v-layout justify-center align-center column>
-          <v-flex class="option-tile" @click="goTo('/answer-new')">
+          <v-flex class="option-tile" @click="goTo('/word-new')">
               <v-layout justify-center align-center fill-height>
                   <span>Start New Game</span>
               </v-layout>
           </v-flex>
-          <v-flex class="option-tile" @click="goTo('/answer-join')">
+          <v-flex class="option-tile" @click="goTo('/word-join')">
               <v-layout justify-center align-center fill-height>
                   <span>Join A Game</span>
               </v-layout>

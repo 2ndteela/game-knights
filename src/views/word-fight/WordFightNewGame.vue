@@ -1,21 +1,45 @@
+<template>
+    <v-layout fill-height style="padding: 16px" justify-center align-center column>
+        <div style="padding-bottom: 16px">
+            <div>Friends in lobby: {{playerCount}}</div>
+            <div style="font-size: 24px; padding-top: 24px">Game Code:</div> 
+            <h1 class="accent--text" style="text-align: center">{{lobbyCode}}</h1>
+        </div>
+        <div style="width: 100%">
+            <v-text-field
+                outlined
+                label="Screen Name"
+                v-model="screenName"
+            ></v-text-field>
+        </div>
+        <div>
+            <v-btn style="margin-right: 8px" @click="cancel">Cancel</v-btn>
+            <v-btn color="primary" @click="startGame">Everybody's in!</v-btn>
+        </div>
+        <message-dialog
+            v-model="showMessage"
+            :body="messageBody"
+            :header="messageHeader"
+        ></message-dialog>
+    </v-layout>
+</template>
 
 <script>
-import { generateCode, setInLocal, getFromLocal, clearLocal } from '../../assets/utilities.js'
-import { dbRemoveListener, dbListen, dbReadOnce, dbUpdate, dbWrite } from '../../assets/services.js'
-import messageDialog from '../../components/MessageDialog.vue'
+import MessageDialog from '../../components/MessageDialog.vue'
+import { generateCode, getFromLocal } from '../../assets/utilities'
+import {dbListen, dbWrite, dbReadOnce, dbRemoveListener, dbUpdate } from '../../assets/services'
 
 export default {
-    name: 'AnswerNewGame',
-    components: { messageDialog },
+    name: 'WordFightNewGame',
+    components: { MessageDialog },
     data() {
         return {
-            lobbyCode: '',
-            playerCount: 0,
-            pointsToWin: 5,
-            screenName: '',
-            showMessage: false,
             messageBody: '',
-            messageHeader: ''
+            messageHeader: '',
+            showMessage: false,
+            screenName: '',
+            playerCount: 1,
+            lobbyCode: ''
         }
     },
     methods: {
@@ -27,10 +51,9 @@ export default {
             }
 
             dbWrite(`/games/${this.lobbyCode}`, {
-                type: 'Answer Is',
+                type: 'Word Fight',
                 playerCount: 1,
-                state: 'lobby',
-                startTime: new Date().toISOString()
+                state: 'lobby'
             })
 
             dbListen(`/games/${this.lobbyCode}`, (snap) => {
@@ -65,10 +88,7 @@ export default {
 
                     const toSend = {
                         state: 'started',
-                        submissions: 0,
-                        pointsToWin: this.pointsToWin,
-                        currentQuestioner: nameList[Math.floor(Math.random() * this.playerCount)],
-                        order: nameList.join('-')
+                        submissions: 0
                     }
                     await dbUpdate(`/games/${this.lobbyCode}`, toSend )
 
@@ -78,7 +98,7 @@ export default {
                     setInLocal('playerCount', this.playerCount)
                     setInLocal('playerId', name)
 
-                    this.$router.push('/answer-question')
+                    this.$router.push('/word-create')
                 }
             }
             catch(err) {
@@ -89,7 +109,7 @@ export default {
         cancel() {
             dbWrite(`/games/${this.lobbyCode}`, null)
             clearLocal()
-            this.$router.push('/answer-home')
+            this.$router.push('/word-home')
         }
     },
     mounted() {
@@ -97,41 +117,11 @@ export default {
         if (!code) code = generateCode()
 
         this.lobbyCode = code
-
         this.openNewLobby()
     }
 }
 </script>
 
-<template>
-    <v-layout fill-height style="padding: 16px" justify-center align-center column>
-        <div style="padding-bottom: 16px">
-            <div>Friends in lobby: {{playerCount}}</div>
-            <div style="font-size: 24px; padding-top: 24px">Game Code:</div> 
-            <h1 class="accent--text" style="text-align: center">{{lobbyCode}}</h1>
-        </div>
-        <div style="width: 100%">
-            <v-text-field
-                outlined
-                label="Screen Name"
-                v-model="screenName"
-            ></v-text-field>
-        </div>
-        <div style="width: 100%">
-            <v-text-field
-                outlined
-                label="Points To Win"
-                v-model="pointsToWin"
-            ></v-text-field>
-        </div>
-        <div>
-            <v-btn style="margin-right: 8px" @click="cancel">Cancel</v-btn>
-            <v-btn color="primary" @click="startGame">Everybody's in!</v-btn>
-        </div>
-        <message-dialog
-            v-model="showMessage"
-            :body="messageBody"
-            :header="messageHeader"
-        ></message-dialog>
-    </v-layout>
-</template>
+<style>
+
+</style>

@@ -1,6 +1,7 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 import Home from '../views/Home.vue'
+
 import HeSaidSheSaidHome from '../views/he-said-she-said/HeSaidSheSaidHome.vue'
 import HeSaidJoinGame from '../views/he-said-she-said/HeSaidJoinGame.vue'
 import HeSaidNewGame from '../views/he-said-she-said/HeSaidNewGame.vue'
@@ -13,6 +14,16 @@ import AnswerNewGame from '../views/the-answer-is/AnswerNewGame.vue'
 import AnswerQuestion from '../views/the-answer-is/AnswerQuestion.vue'
 import AnswerResponse from '../views/the-answer-is/AnswerResponse.vue'
 import AnswerLeaderBoard from '../views/the-answer-is/AnswerLeaderBoard.vue'
+
+import WordFightHome from '../views/word-fight/WordFightHome'
+import WordFightJoin from '../views/word-fight/WordFightJoin'
+import WordFightNewGame from '../views/word-fight/WordFightNewGame'
+import WordFightCreate from '../views/word-fight/WordFightCreate'
+import WordFightPlay from '../views/word-fight/WordFightPlay'
+
+import CownterLandingPage from '../views/cownter/CownterLandingPage'
+import CownterJoinGame from '../views/cownter/CownterJoinGame'
+import CownterCreateGame from '../views/cownter/CownterCreateGame'
 
 Vue.use(VueRouter)
 
@@ -76,6 +87,46 @@ const routes = [
     path: '/answer-leader-board',
     name: 'AnswerLeaderBoard',
     component: AnswerLeaderBoard
+  }, 
+  {
+    path: '/word-home',
+    name: 'WordHome',
+    component: WordFightHome
+  },
+  {
+    path: '/word-new',
+    name: 'WordNew',
+    component: WordFightNewGame
+  },
+  {
+    path: '/word-join',
+    name: 'WordJoin',
+    component: WordFightJoin
+  },
+  {
+    path: '/word-play',
+    name: 'WordPlay',
+    component: WordFightPlay,
+  },
+  {
+    path: '/word-create',
+    name: 'WordCreate',
+    component: WordFightCreate
+  },
+  {
+    path: '/cownter-create',
+    name: 'CownterCreate',
+    component: CownterCreateGame
+  },
+  {
+    path: '/cownter-join',
+    name: 'CownterJoin',
+    component: CownterJoinGame
+  },
+  {
+    path: '/cownter-home',
+    name: 'CownterLandingPage',
+    component: CownterLandingPage
   }
 ]
 

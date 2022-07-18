@@ -2,7 +2,8 @@
   <v-layout style="width: 100%; padding: 16px; height: 100%" column justify-center align-center>
         <div style="width: 100%" v-if="!submitted">
             <v-layout style="padding-bottom: 16px" align-center> 
-                <count-down :start="45" :callback="forceAnswer"></count-down>  
+                <count-down :start="45" :callback="forceAnswer"></count-down>
+                <!-- add info blurb  -->
                 <div style="padding-left: 8px">What is the answer?</div> 
             </v-layout>
             <v-textarea

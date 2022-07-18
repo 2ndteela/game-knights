@@ -21,7 +21,8 @@ export default {
             dbWrite(`/games/${this.lobbyCode}`, {
                 type: 'He Said She Said',
                 playerCount: 1,
-                state: 'lobby'
+                state: 'lobby',
+                startTime: new Date().toISOString()
             })
 
             dbListen(`/games/${this.lobbyCode}`, (snap) => {
@@ -38,7 +39,7 @@ export default {
                 const toSend = {
                     state: 'started',
                     currentRound: 0,
-                    submissions: 0
+                    submissions: 0,
                 }
                 await dbUpdate(`/games/${this.lobbyCode}`, toSend )
 
